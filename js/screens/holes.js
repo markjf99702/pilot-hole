@@ -279,7 +279,7 @@ const forstnerWord = b => (b.kind === 'forstner' ? 'Forstner, ' : '');
 // A bit's size in the units its name doesn't already give: 0.126″ for 3.2 mm, 0.201″ · 5.11 mm for #7.
 function otherSizes(b) {
   if (b.metric) return `${decIn(b.in, 4)}″`;
-  if (b.kind === 'frac') return `${decIn(b.in, 4)}″ · ${mmText(b.mm)} mm`;
+  if (b.kind === 'frac') return `${decIn(b.in, 4)}″ · ${mmText(b.mm)}\u00a0mm`;
   return bitSizes(b);
 }
 
@@ -309,5 +309,5 @@ function isMetricWork(r) {
   return false;
 }
 function sizeBig(mm, metric) {
-  return metric ? `${mmText(mm, 1)}<small> mm</small>` : `${decIn(mm / MM, 3)}″`;
+  return metric ? `${mmText(mm, 1)}<small>\u00a0mm</small>` : `${decIn(mm / MM, 3)}″`;
 }

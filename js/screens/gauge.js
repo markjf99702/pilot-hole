@@ -325,7 +325,7 @@ export function renderGauge(main, hash = '') {
       }
       over.insertAdjacentHTML('beforeend', `<button type="button" class="comb-btn${on ? ' on' : ''}" data-comb="${c.key}" style="top:${y - 28}px;height:${band + 54}px" aria-pressed="${on}">
         <span><b>${fracify(t.system === 'inch' ? t.label : fullName(t))}</b> · ${esc(c.label)}${c.threads.length > 1 ? ` <small>(${c.threads.filter(x => x !== t).map(x => esc(x.label)).join(', ')} too)</small>` : ''}</span>
-        <small>10 threads: ${mmText(tenThreads(c.pitch), 2)} mm</small></button>`);
+        <small>10 threads: ${mmText(tenThreads(c.pitch), 2)}\u00a0mm</small></button>`);
     });
     const tall = Math.max(H, combTop(combs.length - 1) + band + 34);
     svg.setAttribute('height', tall);
@@ -349,7 +349,7 @@ export function renderGauge(main, hash = '') {
         const a = threadOnComb(pick, st.dia), b = threadOnComb(other, st.dia);
         const call = twinCall(a, b, st.dia);
         const nm = t => `${t.system === 'metric' ? 'an' : 'a'} ${esc(shortName(t))}`; // an M5, a #10-32
-        twin = `<p class="g-warn">${esc(fullName(a))} and ${esc(fullName(b))} have all but the same pitch, so the size decides: ${nm(a)} measures about ${fixed(expectedMajor(a), 2)} mm across its threads, ${nm(b)} about ${fixed(expectedMajor(b), 2)}. You measured ${fixed(st.dia, 2)}: ${call.sure
+        twin = `<p class="g-warn">${esc(fullName(a))} and ${esc(fullName(b))} have all but the same pitch, so the size decides: ${nm(a)} measures about ${fixed(expectedMajor(a), 2)}\u00a0mm across its threads, ${nm(b)} about ${fixed(expectedMajor(b), 2)}. You measured ${fixed(st.dia, 2)}: ${call.sure
           ? `<b>that’s the ${esc(shortName(call.thread))}</b>.`
           : `<b>a shade nearer the ${esc(shortName(call.thread))}</b>. A nut you know will settle it.`}</p>`;
       }
@@ -423,8 +423,8 @@ export function renderGauge(main, hash = '') {
     return {
       drawing: bitOnGlass(b, { k, x0, y0, finish: finishOf(b), shank: 14, flutes: 22 }),
       label: `<p class="g-kicker">That bit is</p><h2 class="gauge-name">${bitHTML(b)}</h2><p class="g-facts">${esc(bitSizes(b))}</p>
-        <p class="g-facts">You measured ${mmText(st.dia, 2)} mm. ${others.length
-          ? `A pixel on this screen is ${mmText(1 / k, 2)} mm, so it could also be ${list(others)}.`
+        <p class="g-facts">You measured ${mmText(st.dia, 2)}\u00a0mm. ${others.length
+          ? `A pixel on this screen is ${mmText(1 / k, 2)}\u00a0mm, so it could also be ${list(others)}.`
           : 'Nothing else is within a pixel of that.'}</p>
         ${own}`,
       details: `<div class="row-btns"><button type="button" class="btn primary" data-bit="${b.id}">What it’s for</button>
@@ -441,7 +441,7 @@ export function renderGauge(main, hash = '') {
       const len = snapLength(st.len, kind === 'lag' && g.metric);
       name = screwName({ kind, gauge: g, len });
       pick = { type: kind, size: g.id };
-      facts = `You measured ${mmText(st.dia, 2)} mm across the threads${g.st ? ` (${esc(g.st)} in metric)` : ''}, ${lenWords(st.len, len)}.`;
+      facts = `You measured ${mmText(st.dia, 2)}\u00a0mm across the threads${g.st ? ` (${esc(g.st)} in metric)` : ''}, ${lenWords(st.len, len)}.`;
       shape = screwShape({ kind, gauge: g, len });
     } else {
       const { t, twin, sure } = namedThread();
@@ -450,12 +450,12 @@ export function renderGauge(main, hash = '') {
       const len = snapLength(st.len, t.system === 'metric');
       name = screwName({ kind: 'machine', thread: t, len, head: st.head });
       pick = { type: 'machine', size: t.id, ...(st.head ? { head: st.head } : {}) };
-      facts = `${t.system === 'inch' ? `${esc(t.sizeLabel)} ${esc(t.cls)}` : `M${t.d}${t.cls === 'fine' ? ' fine' : ''}`}, ${esc(pitchText(t))}. You measured ${mmText(st.dia, 2)} mm across the threads, ${lenWords(st.len, len)}.`;
+      facts = `${t.system === 'inch' ? `${esc(t.sizeLabel)} ${esc(t.cls)}` : `M${t.d}${t.cls === 'fine' ? ' fine' : ''}`}, ${esc(pitchText(t))}. You measured ${mmText(st.dia, 2)}\u00a0mm across the threads, ${lenWords(st.len, len)}.`;
       if (twin) twinNote = `<p class="g-twin">${esc(fullName(twin))} has all but the same pitch, and the size you measured ${sure ? 'says' : 'leans to'} ${esc(shortName(t))}${sure ? '' : ': a nut you know will settle it'}.</p>`;
       // Between the sizes in the tables, the nearest thread is a guess, and it says so.
       if (!fitsThread(t, st.dia)) {
         const off = st.dia - expectedMajor(t);
-        twinNote += `<p class="g-twin">${an(shortName(t)) === 'an' ? 'An' : 'A'} ${esc(shortName(t))} measures about ${fixed(expectedMajor(t), 2)} mm across its threads, ${fixed(Math.abs(off), 2)} mm ${off > 0 ? 'less' : 'more'} than this one. Check the jaw: it may be a size the tables don’t have.</p>`;
+        twinNote += `<p class="g-twin">${an(shortName(t)) === 'an' ? 'An' : 'A'} ${esc(shortName(t))} measures about ${fixed(expectedMajor(t), 2)}\u00a0mm across its threads, ${fixed(Math.abs(off), 2)}\u00a0mm ${off > 0 ? 'less' : 'more'} than this one. Check the jaw: it may be a size the tables don’t have.</p>`;
       }
       st.thread = t;
       shape = screwShape({ kind: 'machine', thread: t, len, head: st.head });
@@ -504,7 +504,7 @@ export function renderGauge(main, hash = '') {
     return st.dia > r.hi ? `${plural} stop at ${r.last.label}: this one’s fatter.` : `${plural} start at ${r.first.label}: this one’s thinner.`;
   }
   const normal = (pick, pointed) => ({ ...pick, material: pointed ? (pick.type === 'sheet' ? 'steel' : 'hardwood') : (store.pick?.material && pick.type === store.pick.type ? store.pick.material : 'aluminium') });
-  const lenWords = (mm, len) => `${mmText(mm, 1)} mm long${len.standard ? '' : ' (not a usual length)'}`;
+  const lenWords = (mm, len) => `${mmText(mm, 1)}\u00a0mm long${len.standard ? '' : ' (not a usual length)'}`;
   // "1/4-20 × 1-1/2 hex bolt" with the length's fraction set properly. The thread's name and each "× size"
   // stay whole, so it breaks as "1/4-20 × 1½ / hex bolt", never "1/4- / 20" or "1 / ½".
   const fracName = name => esc(name)

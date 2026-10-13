@@ -194,6 +194,8 @@ try {
   assert.match(uses, /#3 and #4 wood screws shank hole exact · the usual/);
   assert.match(uses, /#6-32 tap drill 71% thread Near enough for/i);
   assert.match(uses, /Near enough the same as #35/);
+  // A twin's name stays on one line: "2.8 mm", never "2.8" at the end of one line and "mm" on the next.
+  assert.deepEqual(await page.$$eval('.twins b', bs => bs.filter(b => b.getClientRects().length > 1).map(b => b.textContent)), []);
 
   // A number drill is known for its tap drill, and that comes first, not under the pilot holes it nearly fits.
   await page.click('.sheet .close');

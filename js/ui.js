@@ -9,13 +9,13 @@ export const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;'
 export function bitHTML(b) {
   if (!b) return '';
   if (b.kind === 'frac' || (b.kind === 'forstner' && !b.metric)) return `${fracHTML(b.in, b.kind === 'frac' ? 64 : 8)}″`;
-  if (b.metric) return `${esc(b.short)}<small> mm</small>`;
+  if (b.metric) return `${esc(b.short)}<small>\u00a0mm</small>`;
   return esc(b.name);
 }
 
 // Any size in both units, inches first for inch work: 0.1250″ · 3.18 mm.
 export function sizeText(mm, metricFirst = false) {
-  const i = `${decIn(mm / MM, 4)}″`, m = `${mmText(mm)} mm`;
+  const i = `${decIn(mm / MM, 4)}″`, m = `${mmText(mm)}\u00a0mm`;
   return metricFirst ? `${m} · ${i}` : `${i} · ${m}`;
 }
 export const bitSizes = b => sizeText(b.mm, b.metric);

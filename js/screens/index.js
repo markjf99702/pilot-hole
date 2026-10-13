@@ -190,7 +190,7 @@ function twinText(twins, b) {
   const same = twins.filter(t => Math.abs(t.mm - b.mm) < 0.006);
   const near = twins.filter(t => !same.includes(t));
   // A Forstner bit's twin can share its name: "the 3/8″ twist drill".
-  const nm = t => (t.name === b.name ? `the ${esc(t.name)} twist drill` : `<b>${esc(t.name)}</b>`);
+  const nm = t => (t.name === b.name ? `the <span class="nw">${esc(t.name)}</span> twist drill` : `<b class="nw">${esc(t.name)}</b>`);
   const list = xs => xs.map(t => `${nm(t)}${same.includes(t) ? '' : ` (${esc(offWords(t.mm - b.mm, b.metric))})`}`).join(' and ');
   return [same.length ? `The same size as ${list(same)}.` : '', near.length ? `${same.length ? 'Near enough' : 'Near enough the same as'} ${list(near)}${same.length ? ' too' : ''}.` : ''].join(' ');
 }
