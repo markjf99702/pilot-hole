@@ -26,7 +26,7 @@ export function renderIndex(main) {
         <h1>Your drill index</h1>
         <p>${count ? `${count} bit${count > 1 ? 's' : ''}${missing ? `, ${missing} gone missing` : ''}. Tap one to see everything it’s right for, or to mark it missing.` : 'No bits yet: tick the sets you have below.'}</p>
       </div>
-      <div class="cases">${owned.map(caseHTML).join('')}${store.loose.length ? looseCase() : ''}</div>
+      <div class="cases">${owned.filter(x => !x.big).map(caseHTML).join('')}${store.loose.length ? looseCase() : ''}${owned.filter(x => x.big).map(caseHTML).join('')}</div>
       <section class="others" aria-labelledby="othersTitle">
         <h2 id="othersTitle">${owned.length ? 'Other sets' : 'Sets'}</h2>
         <p class="hint">Tick the ones in your drawer. Answers on the Holes screen come from these.</p>
