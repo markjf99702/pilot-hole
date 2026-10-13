@@ -141,6 +141,15 @@ try {
   assert.equal(await text(page, '.hole[data-key="insert"] .big .bit-link'), '25/64″');
   await fits(page, 'the Holes screen with inserts');
 
+  // Each fastener comes back to where it was: the printed part a heat-set insert needs doesn't stick to a wood screw.
+  await page.click('[data-type="wood"]');
+  assert.equal(await text(page, '.spec'), '#8 wood screw into hardwood');
+  await page.click('[data-size="12"]');
+  await page.click('[data-type="heatset"]');
+  assert.equal(await text(page, '.spec'), 'M3 heat-set insert into printed part');
+  await page.click('[data-type="wood"]');
+  assert.equal(await text(page, '.spec'), '#12 wood screw into hardwood', 'back to where the wood screw was');
+
   // ---------- The drill index ----------
   await page.click('.tabs a[data-tab="index"]');
   await page.waitForSelector('.case[data-set="frac29"]');

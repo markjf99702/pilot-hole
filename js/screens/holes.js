@@ -25,6 +25,9 @@ function toGet(h, metric, material) {
   return null;
 }
 const lastSize = { inch: '1/4-20', metric: 'M3' };
+// Each fastener's last size and material this visit, so a heat-set insert forcing a printed part doesn't
+// leave the wood screw you come back to going into plastic.
+const lastPick = {};
 
 // The address for a pick, so a reload or a shared link comes back to it.
 export function pickHash(p) {
@@ -65,6 +68,7 @@ const NOT_FOR = {
 
 export function renderHoles(main, fromHash) {
   let pick = normalizePick(fromHash || store.pick || {});
+  lastPick[pick.type] = pick;
   main.innerHTML = `
     <section class="holes">
       <div class="picker" id="picker"></div>
@@ -74,6 +78,7 @@ export function renderHoles(main, fromHash) {
 
   function set(p, { scrollChips = false } = {}) {
     pick = normalizePick(p);
+    lastPick[pick.type] = pick;
     const t = pick.type === 'machine' ? threadById(pick.size) : null;
     if (t) lastSize[t.system] = pick.size;
     store.setPick(pick);
@@ -133,9 +138,10 @@ export function renderHoles(main, fromHash) {
     const b = e.target.closest('button');
     if (!b) return;
     if (b.dataset.type && b.dataset.type !== pick.type) {
+      // Back to where this fastener was; the first time, its usual size into whatever you're on, if it can go there.
       const type = FS.typeById(b.dataset.type);
       const keepMat = FS.fitsMaterial(type, pick.material) ? pick.material : type.mat;
-      set({ type: type.id, size: type.def, material: keepMat }, { scrollChips: true });
+      set(lastPick[type.id] || { type: type.id, size: type.def, material: keepMat }, { scrollChips: true });
     } else if (b.dataset.sys) {
       set({ ...pick, size: lastSize[b.dataset.sys] }, { scrollChips: true });
     } else if (b.dataset.size) set({ ...pick, size: b.dataset.size });
