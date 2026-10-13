@@ -437,6 +437,15 @@ test('lags, sheet-metal screws, inserts, dowels, shelf pins and hinge cups', () 
   assert.equal(pick({ type: 'lag', size: '1/4', material: 'hardwood' }, frac, 'lead').c.bit.id, 'f:3/16');
   assert.equal(pick({ type: 'lag', size: '5/16', material: 'softwood' }, frac, 'shank').c.bit.id, 'f:5/16');
   assert.equal(holesFor({ type: 'lag', size: '3/8' }).tools[0].text, '9/16″');
+  // A lag always wants its lead hole: its notes never borrow the wood screw's "pilot anyway", and ply's says
+  // softwood, as its lead hole is.
+  for (const material of FS.WOOD) {
+    const note = holesFor({ type: 'lag', size: '5/16', material }).note;
+    assert.match(note, /^Always drill the lead hole/, material);
+    assert.doesNotMatch(note, /pilot anyway|hardwood size|countersink/i, material);
+  }
+  assert.match(holesFor({ type: 'lag', size: '5/16', material: 'plywood' }).note, /takes the softwood size/);
+  assert.match(holesFor({ type: 'lag', size: '5/16', material: 'plywood' }).holes[0].note, /NDS range for softwood/);
   assert.equal(pick({ type: 'sheet', size: '8', material: 'steel' }, frac, 'pilot').c.bit.id, 'f:1/8');
   assert.equal(pick({ type: 'sheet', size: '10', material: 'aluminium' }, owning('num60'), 'pilot').c.bit.id, 'n:29');
   assert.match(holesFor({ type: 'sheet', size: '10' }).tools[0].text, /5\/16″ nut driver/);

@@ -28,6 +28,13 @@ const MAT_NOTES = {
   mdf: 'Always pilot MDF, and keep 1″ (25 mm) from corners. It won’t let a head pull itself in, so countersink, and don’t overtighten: it strips.',
   printed: 'Printed holes come out a little small: drill them to size, or model them 0.1–0.2 mm big.',
 };
+// A lag always wants its lead hole, wherever it goes. Ply takes the softwood lead (LAG_LEAD).
+const LAG_NOTES = {
+  hardwood: 'Always drill the lead hole: driven into hardwood without one, a lag can split the wood or snap off. Soap or wax on the threads makes it easier to turn.',
+  softwood: 'Always drill the lead hole, and keep well in from ends and edges, where softwood splits.',
+  plywood: 'Always drill the lead hole. Into the face, ply takes the softwood size; into an edge, keep to the middle or the plies split apart.',
+  mdf: 'Always drill the lead hole. MDF holds a lag poorly and splits near its edges, so keep 1″ (25 mm) from corners and stop as soon as it’s snug.',
+};
 
 // ---------- One pick: a fastener, its size, what it goes into ----------
 export function normalizePick(p = {}) {
@@ -168,7 +175,7 @@ const BUILD = {
     ];
     return { name, title: name, diagram: 'lag', holes,
       tools: [{ what: 'Wrench or socket', text: l.wrench }, { what: 'Washer', text: 'Under the head, so it doesn’t sink into the wood' }],
-      note: MAT_NOTES[mat] };
+      note: LAG_NOTES[mat] };
   },
 
   sheet(p) {
