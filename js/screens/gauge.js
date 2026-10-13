@@ -419,10 +419,11 @@ export function renderGauge(main, hash = '') {
       <div class="g-details">${details}</div>
     </div>`;
     // The fences run the whole height of the glass, which the name beside the drawing may have stretched;
-    // with the name under the drawing they stop above it.
+    // with the name under the drawing they stop above it. The rail along the top stops where its fence does,
+    // so the name beside the drawing sits on plain glass, not half on the rail.
     const g = $('.g-glass', over), d = $('.g-draw', over), h = below ? glassH : Math.max(glassH, g.offsetHeight);
     d.setAttribute('height', h);
-    $('.rail', d).setAttribute('d', `M0 0H${W}V${y0}H${x0}V${h}H0Z`);
+    $('.rail', d).setAttribute('d', `M0 0H${fenceTo}V${y0}H${x0}V${h}H0Z`);
     $('.fence', d).setAttribute('d', `M${x0} ${y0}H${fenceTo}M${x0} ${y0}V${h}`);
     panel.innerHTML = '';
   }
