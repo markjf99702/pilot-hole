@@ -3,10 +3,11 @@ import { store } from '../store.js';
 import { SETS, bitById } from '../drills.js';
 import { mmText } from '../units.js';
 import { looseSheet } from './index.js';
-import { esc, fracify, openSheet, closeSheet, toast, ICON } from '../ui.js';
+import { esc, fracify, openSheet, closeSheet, toast, ICON, SITE, isSingle, canDownload } from '../ui.js';
 
 export function yourBitsSheet() {
   const body = openSheet('');
+  const saving = canDownload();
   function draw() {
     const scr = store.screen();
     const loose = store.loose.map(bitById).filter(Boolean).sort((a, b) => a.mm - b.mm);
@@ -26,13 +27,14 @@ export function yourBitsSheet() {
       <p class="hint">${scr ? (scr.same ? `Calibrated with a bank card: ${mmText(scr.pxPerMm, 2)} pixels to the millimetre.` : 'Calibrated on a different screen or zoom: the gauge will ask again.') : 'Not calibrated yet. The screw gauge asks for a bank card the first time.'}
         ${scr ? '<a href="#/gauge?calibrate" class="link" data-close>Calibrate again</a>' : ''}</p>
       <h3 class="sub-title">Keep a copy</h3>
-      <p class="hint">Your bits are kept in this browser, on this device. Save a copy to move them to another phone, or keep it safe.</p>
+      <p class="hint">Your bits are kept in this browser, on this device. ${saving ? 'Save a copy to move them to another phone, or keep it safe.'
+        : `To save a copy of them, open Pilot Hole at <a class="link" href="${SITE}">junkdrawer.works/pilot-hole</a>.`}</p>
       <div class="row-btns">
-        <button type="button" class="btn small" data-act="save">Save a copy</button>
+        ${saving ? '<button type="button" class="btn small" data-act="save">Save a copy</button>' : ''}
         <label class="btn small file-btn">Load a copy<input type="file" accept="application/json,.json" data-act="load" hidden></label>
       </div>
       <div class="about">
-        <p>Nothing you do here is sent anywhere. It works offline, and you can add it to your home screen.</p>
+        <p>Nothing you do here is sent anywhere.${isSingle() ? '' : ' It works offline, and you can add it to your home screen.'}</p>
         <button type="button" class="btn quiet" data-act="clear">Clear everything</button>
         <footer class="jd-foot">
           <a href="https://junkdrawer.works/">Part of junkdrawer.works</a>

@@ -26,6 +26,15 @@ export { offWords };
 // Fractions inside any text: 1/4-20 stays as written, but "1-1/2″" can be set as a real fraction.
 export const fracify = s => esc(s).replace(/(\d+)\/(\d+)(?=″)/g, '<span class="fr">$1/$2</span>');
 
+// The one-file copy (scripts/build.mjs) has no offline copy and can't be installed, and shown inside another
+// page, as the playable copy is, it can't start a download either.
+export const SITE = 'https://junkdrawer.works/pilot-hole/';
+export const isSingle = () => 'single' in document.documentElement.dataset;
+export function canDownload() {
+  if (!isSingle()) return true;
+  try { return window.top === window.self; } catch { return false; }
+}
+
 let toastTimer;
 export function toast(text) {
   const t = document.getElementById('toast');

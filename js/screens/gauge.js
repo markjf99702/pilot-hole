@@ -62,9 +62,11 @@ export function renderGauge(main, hash = '') {
   const recal = !!saved && !saved.same;
 
   document.body.classList.add('gauge-on');
+  // Pinch-zoom is locked while the gauge is open. The playable copy is a fragment inside another page, which
+  // may not have a viewport tag at all.
   const meta = document.querySelector('meta[name="viewport"]');
-  const metaWas = meta.content;
-  meta.content = 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover';
+  const metaWas = meta?.content;
+  if (meta) meta.content = 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover';
 
   main.innerHTML = `
     <div class="gauge" id="gauge">
@@ -674,7 +676,7 @@ export function renderGauge(main, hash = '') {
     kept = Object.fromEntries(KEEP.map(x => [x, st[x]]));
     window.removeEventListener('hashchange', onHash);
     document.body.classList.remove('gauge-on');
-    meta.content = metaWas;
+    if (meta) meta.content = metaWas;
     document.removeEventListener('gesturestart', stopGesture);
     window.visualViewport?.removeEventListener('resize', zoomCheck);
     window.removeEventListener('resize', onResize);
