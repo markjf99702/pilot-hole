@@ -291,13 +291,14 @@ export function renderGauge(main, { calibrate = false } = {}) {
     over.innerHTML = `<div class="g-result" style="--lx:${lx}px">
       <div class="g-glass" style="min-height:${glassH}px">
         <svg class="g-draw" width="${W}" height="${glassH}" aria-hidden="true"><path class="rail"/><path class="fence faint"/>${drawing.svg}</svg>
-        <div class="g-label" style="margin-left:${lx}px;padding-top:${below ? glassH : Math.max(12, y0 - 6)}px">${label}
+        <div class="g-label" style="margin-left:${lx}px;padding-top:${below ? glassH + 10 : Math.max(12, y0 - 6)}px">${label}
           <p class="g-lay">Lay it on its drawing: the two should match.</p></div>
       </div>
       <div class="g-details">${details}</div>
     </div>`;
-    // The fences run the whole height of the glass, which the name beside the drawing may have stretched.
-    const g = $('.g-glass', over), d = $('.g-draw', over), h = Math.max(glassH, g.offsetHeight);
+    // The fences run the whole height of the glass, which the name beside the drawing may have stretched;
+    // with the name under the drawing they stop above it.
+    const g = $('.g-glass', over), d = $('.g-draw', over), h = below ? glassH : Math.max(glassH, g.offsetHeight);
     d.setAttribute('height', h);
     $('.rail', d).setAttribute('d', `M0 0H${W}V${y0}H${x0}V${h}H0Z`);
     $('.fence', d).setAttribute('d', `M${x0} ${y0}H${fenceTo}M${x0} ${y0}V${h}`);

@@ -504,6 +504,7 @@ body.gauge-on > .jd-foot { display: none; }
 .g-steps { flex: 1; min-width: 0; display: flex; justify-content: center; gap: 2px; list-style: none; margin: 0; padding: 0 38px 0 0; }
 .g-steps li { padding: 6px 8px; border-radius: 999px; font: 750 12.5px/1 var(--sans); font-stretch: 75%; letter-spacing: .05em; text-transform: uppercase; color: var(--steel-dim); }
 @media (min-width: 380px) { .g-steps li { font-stretch: 87.5%; } }
+@media (max-width: 339px) { .g-steps { padding-right: 0; } .g-steps li { padding: 6px 5px; } }
 .g-steps li.done { color: var(--steel-ink); }
 .g-steps li.now { background: var(--bg); color: var(--ink); }
 .g-zoom { flex-basis: 100%; text-align: center; padding: 4px 8px; border-radius: 8px; background: var(--accent); color: #fff; font-weight: 650; font-size: 14px; }
