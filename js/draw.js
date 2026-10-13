@@ -127,7 +127,7 @@ export function screwOnGlass(s, { k, x0, y0 }) {
     right.push(`${n(cx + rad(y, j % 2 === 0))} ${n(y)}`);
   }
   const endL = s.point === 'chamfer' ? `${n(cx - r)} ${n(end)}L${n(cx + r)} ${n(end)}` : `${n(cx)} ${n(end)}`;
-  body += `<path d="M${left.join('L')}L${endL}L${right.reverse().join('L')}Z" fill="${fill}"/>`;
+  if (left.length) body += `<path d="M${left.join('L')}L${endL}L${right.reverse().join('L')}Z" fill="${fill}"/>`;
   // Each crest as a line across the front, and the groove between, where the pitch is wide enough to read.
   let crests = '', grooves = '';
   for (let y = tStart + P / 2; y < end - P / 2; y += P) {

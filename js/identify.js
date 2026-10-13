@@ -155,7 +155,7 @@ export function screwShape({ kind, thread, gauge, len, head }) {
     return { d, p: MM / s.tpi, root: 0.72 * d, length: L, threaded: L, head: { kind: 'pan', dia: 1.9 * d, height: 0.65 * d }, point: 'sharp', finish: 'bright' };
   }
   const l = LAGS.find(x => x.id === gauge.id);
-  return { d: l.d, p: l.p, root: 0.75 * l.d, length: L, threaded: Math.min(L - l.d, L / 2 + 12.7),
+  return { d: l.d, p: l.p, root: 0.75 * l.d, length: L, threaded: Math.max(L / 2, Math.min(L - l.d, L / 2 + 12.7)),
     head: { kind: 'hex', af: l.af, height: l.headH }, point: 'gimlet', finish: 'bright' };
 }
 

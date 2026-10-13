@@ -598,6 +598,8 @@ test('the named screw drawn at true size: head, shank, threads and point in mill
   close(wood.head.dia, 0.332 * 25.4);
   assert.ok(wood.threaded < wood.length, 'a long wood screw has a plain shank');
   assert.equal(G.screwShape({ kind: 'lag', gauge: G.gaugeFor(7.8, 'lag'), len: { in: 3 } }).head.kind, 'hex');
+  // Even a lag shorter than it is thick has some thread to draw.
+  assert.ok(G.screwShape({ kind: 'lag', gauge: G.gaugeFor(12, 'lag'), len: { mm: 8 } }).threaded > 0);
   assert.equal(G.screwShape({ kind: 'sheet', gauge: G.gaugeFor(4.1, 'sheet'), len: { in: 0.75 } }).head.kind, 'pan');
   // Every head every thread comes with has a shape to draw.
   for (const t of THREADS) for (const h of FS.headsFor(t)) {
