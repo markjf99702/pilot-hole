@@ -1,6 +1,6 @@
 // Every drill bit in the four series (fractional, number, letter, metric), Forstner bits for big holes,
 // and the sets they come in. Sizes are ASME B94.11M for number and letter bits. No page code.
-import { MM, fracText, mmText, decIn } from './units.js';
+import { MM, fracText, mmText } from './units.js';
 
 // Number drills #1 to #80, in inches.
 const NUMBER = [
@@ -19,14 +19,6 @@ const LETTER = {
   A: 0.234, B: 0.238, C: 0.242, D: 0.246, E: 0.250, F: 0.257, G: 0.261, H: 0.266, I: 0.272,
   J: 0.277, K: 0.281, L: 0.290, M: 0.295, N: 0.302, O: 0.316, P: 0.323, Q: 0.332, R: 0.339,
   S: 0.348, T: 0.358, U: 0.368, V: 0.377, W: 0.386, X: 0.397, Y: 0.404, Z: 0.413,
-};
-
-export const KINDS = {
-  frac: { name: 'Fractional', finish: 'gold' },
-  num: { name: 'Number', finish: 'black' },
-  letter: { name: 'Letter', finish: 'bright' },
-  metric: { name: 'Metric', finish: 'cobalt' },
-  forstner: { name: 'Forstner', finish: 'forstner' },
 };
 
 function bit(kind, key, inches, mm) {
@@ -132,6 +124,3 @@ export function nearestInEachKind(mm, { exclude } = {}) {
   }
   return out;
 }
-
-// A bit's sizes in words: 7/64″ is 0.1094″ and 2.78 mm.
-export const sizeLine = b => `${decIn(b.in)}″ · ${mmText(b.mm)} mm`;

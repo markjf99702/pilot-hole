@@ -2,9 +2,9 @@
 import { store } from '../store.js';
 import { holesFor, chooseBit, normalizePick } from '../holes.js';
 import * as FS from '../fasteners.js';
-import { THREADS, threadById } from '../threads.js';
-import { bitById, BITS, SETS, setById } from '../drills.js';
-import { MM, decIn, mmText, fracHTML } from '../units.js';
+import { threadById } from '../threads.js';
+import { bitById, BITS, setById } from '../drills.js';
+import { MM, decIn, mmText } from '../units.js';
 import { bitInHole, coneGlyph, typeIcon, headIcon, swatch, section } from '../draw.js';
 import { $, $$, esc, bitHTML, bitSizes, sizeText, offWords, fracify, toast, ICON } from '../ui.js';
 

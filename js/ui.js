@@ -12,8 +12,6 @@ export function bitHTML(b) {
   if (b.metric) return `${esc(b.short)}<small> mm</small>`;
   return esc(b.name);
 }
-// Text a screen reader (and a copy) gets for a bit.
-export const bitText = b => (b ? b.name : '');
 
 // Any size in both units, inches first for inch work: 0.1250″ · 3.18 mm.
 export function sizeText(mm, metricFirst = false) {

@@ -42,8 +42,6 @@ export function decIn(inches, places = 4) {
   if (s.startsWith('0.')) return s; // keep the leading zero: 0.1094
   return s;
 }
-// Always four places, for tables where the columns should line up: 0.1094, 0.2010.
-export const dec4 = inches => inches.toFixed(4);
 
 // Millimetres: 2.5, 2.78, 35 (two places at most, no trailing zeros).
 export function mmText(mm, places = 2) {

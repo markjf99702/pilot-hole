@@ -3,7 +3,7 @@ import { store } from '../store.js';
 import { SETS, bitById } from '../drills.js';
 import { mmText } from '../units.js';
 import { looseSheet } from './index.js';
-import { $, esc, fracify, openSheet, closeSheet, toast, ICON } from '../ui.js';
+import { esc, fracify, openSheet, closeSheet, toast, ICON } from '../ui.js';
 
 export function yourBitsSheet() {
   const body = openSheet('');
