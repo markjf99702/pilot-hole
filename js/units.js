@@ -35,17 +35,23 @@ export function fracHTML(inches, den = 64) {
   return whole ? `${whole}<span class="sp">-</span>${fr}` : fr;
 }
 
-// Decimal inches the way drill charts print them: 0.1094, 0.201, 0.25.
-export function decIn(inches, places = 4) {
-  let s = inches.toFixed(places);
-  if (s.includes('.')) s = s.replace(/0+$/, '').replace(/\.$/, '');
-  if (s.startsWith('0.')) return s; // keep the leading zero: 0.1094
-  return s;
+// A number to so many places, halves rounded up the way charts round them. toFixed alone prints 1/8″ as
+// 3.17 mm, because 3.175 is kept as 3.17499…; the nudge puts it back over the half.
+export function fixed(x, places) {
+  const f = 10 ** places;
+  return (Math.sign(x) * Math.round(Math.abs(x) * f + 1e-7) / f).toFixed(places);
 }
 
-// Millimetres: 2.5, 2.78, 35 (two places at most, no trailing zeros).
+// Decimal inches the way drill charts print them: 0.1094, 0.201, 0.25.
+export function decIn(inches, places = 4) {
+  let s = fixed(inches, places);
+  if (s.includes('.')) s = s.replace(/0+$/, '').replace(/\.$/, '');
+  return s; // the leading zero stays: 0.1094
+}
+
+// Millimetres: 2.5, 2.78, 3.18, 35 (two places at most, no trailing zeros).
 export function mmText(mm, places = 2) {
-  let s = mm.toFixed(places);
+  let s = fixed(mm, places);
   if (s.includes('.')) s = s.replace(/0+$/, '').replace(/\.$/, '');
   return s;
 }
@@ -55,11 +61,11 @@ export function mmText(mm, places = 2) {
 export function offText(diffMm, metric) {
   const a = Math.abs(diffMm);
   if (metric) {
-    const s = a < 0.1 ? a.toFixed(2) : mmText(a, 2);
+    const s = a < 0.1 ? fixed(a, 2) : mmText(a, 2);
     return `${s} mm`;
   }
   const inch = mmToIn(a);
-  const s = inch < 0.001 ? inch.toFixed(4) : decIn(inch, 4);
+  const s = inch < 0.001 ? fixed(inch, 4) : decIn(inch, 4);
   return `${s}″`;
 }
 

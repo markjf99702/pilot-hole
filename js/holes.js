@@ -1,6 +1,6 @@
 // The holes a fastener needs in a material, the bit you own that suits each, and the other way round:
 // everything one bit is right for. Every size is in millimetres. No page code, so the tests run it in Node.
-import { MM, inToMm, fracText } from './units.js';
+import { MM, inToMm, fracText, mmText } from './units.js';
 import { bitById, bySize } from './drills.js';
 import { threadById, tapDrillMm, threadPct, TAP_RANGE, fullName } from './threads.js';
 import * as FS from './fasteners.js';
@@ -288,7 +288,7 @@ const BUILD = {
 function nearestSheet(g) {
   return String(FS.SHEET_SCREWS.reduce((a, b) => (Math.abs(b.g - g) < Math.abs(a.g - g) ? b : a)).g);
 }
-const mmShort = x => `${(+x.toFixed(1)).toString()} mm`;
+const mmShort = x => `${mmText(x, 1)} mm`;
 
 function countersink(diaMm, angle, extra = '') {
   return hole({ key: 'csink', role: 'head', name: 'Countersink', where: `${angle}°`,

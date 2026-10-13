@@ -36,6 +36,11 @@ test('fractions, decimals and millimetres read the way a drill chart prints them
   assert.equal(U.mmText(35), '35');
   assert.equal(U.offText(inch(0.0035), false), '0.0035″');
   assert.equal(U.offText(0.05, true), '0.05 mm');
+  // Halves round up, the way charts print them: 1/8″ is 3.18 mm, not 3.17.
+  assert.equal(U.mmText(inch(1 / 8)), '3.18');
+  assert.equal(U.mmText(inch(3 / 8)), '9.53');
+  assert.equal(U.mmText(inch(1 / 16)), '1.59');
+  assert.equal(U.offText(0.045, true), '0.05 mm');
   assert.ok(U.isFrac(7 / 64));
   assert.ok(!U.isFrac(0.1065));
 });
