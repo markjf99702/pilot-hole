@@ -526,7 +526,12 @@ test('a bit’s sheet leads with what it’s spot on for, the chart’s own bit 
 test('other bits know what they’re for', () => {
   assert.ok(usesText('n:7').includes('Tap drill · 1/4-20'));
   assert.ok(usesFor('n:7').flatMap(g => g.uses).find(u => u.who === '1/4-20').usual);
-  assert.ok(usesText('n:7').includes('Free clearance · #10'));
+  assert.ok(usesText('n:7').includes('Free clearance · #10 machine screw'));
+  // A clearance hole says what it's for: #2 alone could be a wood screw's gauge, 1/4″ alone a lag or a dowel.
+  assert.ok(usesText('n:41').includes('Free clearance · #2 machine screw'), usesText('n:41').join('\n'));
+  assert.ok(usesText('l:H').includes('Free clearance · 1/4″ bolt'));
+  assert.ok(usesText('m:3.4').includes('Free clearance · M3'));
+  for (const u of allHoles()) if (u.hole.clearance && u.pick.type === 'machine') assert.match(u.who, /^(#\d+ machine screw|[\d/]+″ bolt|M\d+(\.\d)?)$/, u.who);
   assert.ok(usesText('n:29').includes('Tap drill · #8-32'));
   assert.ok(usesText('n:36').includes('Tap drill · #6-32'));
   assert.ok(usesText('m:2.5').includes('Tap drill · M3'));
@@ -536,7 +541,7 @@ test('other bits know what they’re for', () => {
   assert.ok(usesText('f:25/64').includes('Insert hole · 1/4-20 knife-thread insert · hardwood'));
   assert.ok(usesText('f:7/16').includes('Counterbore · 1/4″ socket head'));
   assert.ok(usesText('l:F').includes('Tap drill · 5/16-18'));
-  assert.ok(usesText('l:F').includes('Close clearance · 1/4″'));
+  assert.ok(usesText('l:F').includes('Close clearance · 1/4″ bolt'));
   // A Forstner bit isn't offered for metal.
   for (const g of usesFor('fo:7/8')) for (const u of g.uses) assert.ok(!u.mats.includes('steel'));
   // Every indexed hole can be found by its own usual bit.

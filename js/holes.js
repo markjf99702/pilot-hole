@@ -514,7 +514,12 @@ function useLabel(r, h) {
   if (h.indexName) return h.indexName;
   if (r.pick.type === 'machine') {
     if (h.key === 'cbore') return `${r.thread.sizeLabel} ${r.sub}`;
-    if (h.key === 'close' || h.key === 'free') return r.thread.sizeLabel;
+    // A clearance hole serves both pitches of a size, so it goes by the size, said so it can't be taken for
+    // a wood screw's gauge or a lag: "#2 machine screw", "1/4″ bolt", "M3".
+    if (h.key === 'close' || h.key === 'free') {
+      const t = r.thread;
+      return t.system === 'metric' ? t.size : t.size.startsWith('#') ? `${t.size} machine screw` : `${t.sizeLabel} bolt`;
+    }
     return r.thread.label;
   }
   return r.name;
