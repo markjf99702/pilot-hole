@@ -6,7 +6,7 @@ import * as U from '../js/units.js';
 import { BITS, SETS, bitById, ownedBits, bySize, nearestInEachKind } from '../js/drills.js';
 import { THREADS, threadById, tapDrillMm, threadPct, TAP_RANGE, fullName } from '../js/threads.js';
 import * as FS from '../js/fasteners.js';
-import { holesFor, chooseBit, usesFor, allHoles, normalizePick } from '../js/holes.js';
+import { holesFor, chooseBit, usesFor, allHoles, normalizePick, missWords } from '../js/holes.js';
 import * as G from '../js/identify.js';
 
 const close = (a, b, eps = 1e-6, msg) => assert.ok(Math.abs(a - b) < eps, msg || `${a} is not close to ${b}`);
@@ -260,6 +260,50 @@ test('machine screws: tap drill in the bits you own, with the thread it gives', 
   assert.equal(pick({ type: 'machine', size: 'M3', material: 'printed' }, owning('frac29'), 'straight').c.bit.id, 'f:7/64');
   assert.equal(pick({ type: 'machine', size: 'M3', material: 'printed' }, owning('met25'), 'tap').c.bit.id, 'm:2.5');
   assert.equal(pick({ type: 'machine', size: 'M12', material: 'steel' }, owning('met91', 'tapmm'), 'tap').c.bit.id, 'm:10.2', 'the chart’s 10.2, not 10.3');
+});
+
+test('a bit either side of a tap drill says what’s wrong in words, never an impossible thread', () => {
+  const frac = owning('frac29');
+  // #0-80: the smallest fractional bit, 1/16″, is wider than the screw itself.
+  let { c, h } = pick({ type: 'machine', size: '0-80', material: 'aluminium' }, frac, 'tap');
+  assert.equal(c.ok, false);
+  assert.equal(c.above.bit.id, 'f:1/16');
+  assert.ok(c.above.pct < 0);
+  assert.equal(missWords(h, c.above, 'above', false), 'bigger than the screw: no thread at all');
+  // #2-56: 1/16″ is narrower than the screw's core, past a full thread.
+  ({ c, h } = pick({ type: 'machine', size: '2-56', material: 'steel' }, frac, 'tap'));
+  assert.equal(c.below.bit.id, 'f:1/16');
+  assert.ok(c.below.pct > 100);
+  assert.equal(missWords(h, c.below, 'below', false), 'smaller than the screw’s core: the tap would jam');
+  assert.equal(missWords(h, c.above, 'above', false), '34% thread: too loose to hold');
+  // Into a print with no tap, the words are about the screw, not a tap.
+  ({ c, h } = pick({ type: 'machine', size: '0-80', material: 'printed' }, frac, 'straight'));
+  assert.equal(missWords(h, c.above, 'above', false), 'bigger than the screw: it won’t grip');
+  ({ c, h } = pick({ type: 'machine', size: 'M3', material: 'printed' }, owning('num60'), 'straight'));
+  assert.ok(c.ok, 'a number bit will do to screw an M3 straight in');
+  // Every thread, every material it taps into, every set: no thread under 0% or over 100%.
+  for (const t of THREADS) {
+    for (const material of ['aluminium', 'steel', 'printed']) {
+      for (const s of SETS) {
+        const r = holesFor({ type: 'machine', size: t.id, material });
+        for (const hh of r.holes) {
+          const cc = chooseBit(hh, owning(s.id), material);
+          if (cc.ok) continue;
+          for (const side of ['below', 'above']) {
+            if (!cc[side]) continue;
+            const words = missWords(hh, cc[side], side, t.system === 'metric');
+            assert.doesNotMatch(words, /-\d+%|\b(1\d\d|[2-9]\d\d)%/, `${t.label} ${material} ${s.id} ${hh.key}: ${words}`);
+          }
+        }
+      }
+    }
+  }
+  // A clearance hole too small to pass the screw says so.
+  ({ c, h } = pick({ type: 'machine', size: 'M3', material: 'steel' }, owning('frac29'), 'close'));
+  assert.equal(c.ok, true);
+  ({ c, h } = pick({ type: 'machine', size: '1/4-20', material: 'steel' }, new Set(['f:1/4', 'f:5/16']), 'close'));
+  assert.equal(missWords(h, c.below, 'below', false), 'won’t clear the screw');
+  assert.match(missWords(h, c.above, 'above', false), /: a free fit, not a close one$/);
 });
 
 test('machine screws: heads, keys, counterbores and countersinks', () => {

@@ -1,5 +1,5 @@
 // Pieces every screen uses: escaping, bit names set as real fractions, sizes in both units, the sheet and toasts.
-import { MM, fracHTML, decIn, mmText, offText, SAME_MM } from './units.js';
+import { MM, fracHTML, decIn, mmText, offWords } from './units.js';
 
 export const $ = (sel, el = document) => el.querySelector(sel);
 export const $$ = (sel, el = document) => [...el.querySelectorAll(sel)];
@@ -20,11 +20,8 @@ export function sizeText(mm, metricFirst = false) {
 }
 export const bitSizes = b => sizeText(b.mm, b.metric);
 
-// How far a bit is from the size wanted: exact, 0.0035″ big, 0.05 mm small.
-export function offWords(diffMm, metric) {
-  if (Math.abs(diffMm) < SAME_MM) return 'exact';
-  return `${offText(diffMm, metric)} ${diffMm > 0 ? 'big' : 'small'}`;
-}
+// How far a bit is from the size wanted (exact, 0.0035″ big, 0.05 mm small) lives with the other units.
+export { offWords };
 
 // Fractions inside any text: 1/4-20 stays as written, but "1-1/2″" can be set as a real fraction.
 export const fracify = s => esc(s).replace(/(\d+)\/(\d+)(?=″)/g, '<span class="fr">$1/$2</span>');

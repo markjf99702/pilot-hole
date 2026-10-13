@@ -1,6 +1,6 @@
 // The Holes screen: pick a fastener and what it's going into, and see every hole it needs in the bits you own.
 import { store } from '../store.js';
-import { holesFor, chooseBit, normalizePick } from '../holes.js';
+import { holesFor, chooseBit, normalizePick, missWords } from '../holes.js';
 import * as FS from '../fasteners.js';
 import { threadById } from '../threads.js';
 import { bitById, BITS, setById } from '../drills.js';
@@ -227,12 +227,7 @@ function card(h, r, owned, scale) {
   const why = side => {
     const x = c[side];
     if (!x) return '';
-    let reason;
-    if (x.pct != null) reason = side === 'below' ? `${Math.round(x.pct)}% thread: too tight, the tap may snap` : `${Math.round(x.pct)}% thread: too loose to hold`;
-    else if (h.role === 'clear' && side === 'below' && x.bit.mm <= (r.thread ? r.thread.d : h.min)) reason = 'won’t clear the screw';
-    else if (h.key === 'close' && side === 'above') reason = `${offWords(x.diff, metric)}: a free fit, not a close one`;
-    else reason = `${offWords(x.diff, metric)}: ${side === 'below' ? 'too tight' : 'too loose'}`;
-    return `<li><button type="button" class="bit-link" data-bit="${x.bit.id}">${bitHTML(x.bit)}</button> ${esc(reason)}</li>`;
+    return `<li><button type="button" class="bit-link" data-bit="${x.bit.id}">${bitHTML(x.bit)}</button> ${esc(missWords(h, x, side, metric))}</li>`;
   };
   const near = why('below') + why('above');
   return `<li class="hole r-${h.role} none" data-key="${h.key}">

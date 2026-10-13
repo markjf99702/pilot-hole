@@ -71,3 +71,9 @@ export function offText(diffMm, metric) {
 
 // Small enough to call the same size.
 export const SAME_MM = 0.006;
+
+// How far a bit is from the size wanted: exact, 0.0035″ big, 0.05 mm small.
+export function offWords(diffMm, metric) {
+  if (Math.abs(diffMm) < SAME_MM) return 'exact';
+  return `${offText(diffMm, metric)} ${diffMm > 0 ? 'big' : 'small'}`;
+}

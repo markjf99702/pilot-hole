@@ -1,6 +1,6 @@
 // The holes a fastener needs in a material, the bit you own that suits each, and the other way round:
 // everything one bit is right for. Every size is in millimetres. No page code, so the tests run it in Node.
-import { MM, inToMm, fracText, mmText } from './units.js';
+import { MM, inToMm, fracText, mmText, offWords } from './units.js';
 import { bitById, bySize } from './drills.js';
 import { threadById, tapDrillMm, threadPct, TAP_RANGE, fullName } from './threads.js';
 import * as FS from './fasteners.js';
@@ -313,7 +313,7 @@ function clearance(t, fit, o = {}) {
   }
   return hole({ key: fit, role: 'clear', name: fit === 'close' ? 'Close clearance' : 'Free clearance',
     where: fit === 'close' ? 'snug: for lining parts up' : 'easy: the usual through hole',
-    ideal, min, max, usual, clearance: true,
+    ideal, min, max, usual, clearance: true, screwMm: t.d,
     depth: 'Right through the part being fastened.', ...o });
 }
 
@@ -381,6 +381,23 @@ export function chooseBit(h, owned, material = 'hardwood') {
   const above = list.find(b => b.mm > h.max);
   const info = b => b && { bit: b, diff: b.mm - h.ideal, pct: h.thread ? threadPct(h.thread, b.mm) : null };
   return { ok: false, below: info(below), above: info(above), usual };
+}
+
+// Why the nearest bit on one side of a hole's range won't do, in words: "95% thread: too tight, the tap
+// may snap", "0.0156″ small: too tight". A thread can't be under 0% or over 100%: a bit that big is wider
+// than the screw, and one that small is narrower than the screw's core.
+export function missWords(h, x, side, metric) {
+  const off = offWords(x.diff, metric);
+  if (x.pct != null) {
+    const straight = h.key === 'straight'; // a screw forming its own thread in a print, no tap
+    if (x.pct <= 0) return straight ? 'bigger than the screw: it won’t grip' : 'bigger than the screw: no thread at all';
+    if (x.pct >= 100) return straight ? 'smaller than the screw’s core: it would split the print' : 'smaller than the screw’s core: the tap would jam';
+    if (straight) return `${off}: ${side === 'below' ? 'too tight, it may split the print' : 'too loose to hold'}`;
+    return `${Math.round(x.pct)}% thread: ${side === 'below' ? 'too tight, the tap may snap' : 'too loose to hold'}`;
+  }
+  if (h.role === 'clear' && side === 'below' && x.bit.mm <= (h.screwMm ?? h.min)) return 'won’t clear the screw';
+  if (h.key === 'close' && side === 'above') return `${off}: a free fit, not a close one`;
+  return `${off}: ${side === 'below' ? 'too tight' : 'too loose'}`;
 }
 
 // ---------- The other way round: everything a bit is right for ----------
