@@ -149,9 +149,10 @@ h1, h2, h3 { line-height: 1.12; margin: 0; }
 .bar-btn:hover { background: rgba(0, 0, 0, .3); }
 .bar-in > .bar-btn { grid-row: 1; grid-column: 2; justify-self: end; }
 @media (min-width: 820px) { .bar-in > .bar-btn { grid-column: 3; } }
-.bar-btn span { display: none; }
+/* On the narrowest phones the words stay and the little case of bits goes, so it's never a bare icon */
+.bar-btn svg { display: none; }
 @media (min-width: 370px) {
-  .bar-btn span { display: inline; }
+  .bar-btn svg { display: block; }
   .bar-btn { padding: 4px 11px 4px 9px; gap: 6px; }
 }
 @media (max-width: 419px) { .brand span { font-size: 18.5px; } .brand { gap: 8px; } .brand img { width: 30px; height: 30px; } }
