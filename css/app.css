@@ -520,6 +520,15 @@ body.gauge-on > .jd-foot { display: none; }
 .g-over { position: absolute; inset: 0; pointer-events: none; }
 .g-over > * { pointer-events: auto; }
 .gauge[data-step="name"] .g-field { touch-action: auto; user-select: text; -webkit-user-select: text; background: var(--bg); color: var(--ink); }
+/* On the Threads step the glass scrolls, so a short screen still reaches every comb, and a fade at its
+   foot says when there are more below */
+.gauge[data-step="threads"] .g-field { overflow-x: hidden; overflow-y: auto; touch-action: pan-y; overscroll-behavior: contain; scrollbar-gutter: stable; }
+.g-panel { position: relative; }
+.gauge[data-below] .g-panel::before {
+  content: ''; position: absolute; left: 0; right: 0; bottom: 100%; height: 44px; pointer-events: none;
+  background: linear-gradient(rgba(247, 245, 239, 0), #f7f5ef 85%);
+}
+@media (prefers-color-scheme: dark) { .gauge[data-below] .g-panel::before { background: linear-gradient(rgba(220, 217, 209, 0), #dcd9d1 85%); } }
 .gauge[data-step="name"] .g-over { overflow-y: auto; overscroll-behavior: contain; }
 /* Turned on its side, a phone has no room to measure */
 .g-turn {

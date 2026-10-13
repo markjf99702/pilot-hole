@@ -397,6 +397,30 @@ try {
   await small.page.waitForFunction(() => !document.getElementById('gTurn').hidden);
   await small.ctx.close();
 
+  // ---------- A phone with its browser's bars showing: every comb can still be reached ----------
+  const short = await device({ width: 390, height: 664 }, { isMobile: true, hasTouch: true });
+  await short.page.goto(base);
+  await short.page.evaluate(() => window.pilotHole.store.setScreen(6));
+  await short.page.goto(base + '#/gauge');
+  await short.page.waitForSelector('.gauge[data-step="measure"]');
+  // 4.85 mm across the threads: M5, #10-32 or #10-24, with three more combs behind More sizes.
+  const hx0 = Math.round(14 + 7 * 6), hf = await short.page.locator('#gField').boundingBox();
+  await short.page.mouse.move(hf.x + hx0 + 6.2 * 6, hf.y + hf.height - 30); await short.page.mouse.down();
+  await short.page.mouse.move(hf.x + hx0 + 4.85 * 6, hf.y + hf.height - 30, { steps: 5 }); await short.page.mouse.up();
+  await short.page.click('[data-go="threads"]');
+  await short.page.waitForSelector('.comb-btn');
+  assert.equal(await short.page.locator('.comb-btn').count(), 3);
+  await short.page.click('[data-more]');
+  assert.equal(await short.page.locator('.comb-btn').count(), 6, 'More sizes draws every comb, not just the ones that fit');
+  await short.page.waitForFunction(() => document.getElementById('gField').scrollTop > 0); // and scrolls down to them
+  const lastComb = short.page.locator('.comb-btn').last();
+  await lastComb.scrollIntoViewIfNeeded();
+  assert.match(await lastComb.innerText(), /1\/4-20/);
+  await lastComb.click();
+  assert.equal(await short.page.locator('.comb-btn').last().getAttribute('aria-pressed'), 'true');
+  await fits(short.page, 'the combs on a short phone');
+  await short.ctx.close();
+
   // ---------- On a laptop ----------
   const laptop = await device({ width: 1280, height: 800 });
   page = laptop.page;

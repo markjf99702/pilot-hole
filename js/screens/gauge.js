@@ -71,6 +71,8 @@ export function renderGauge(main, { calibrate = false } = {}) {
     drawSteps();
     gauge.dataset.step = st.step;
     over.innerHTML = '';
+    field.scrollTop = 0;
+    moreBelow();
     // On its side a phone has too little glass to measure on.
     $('#gTurn', gauge).hidden = !(phone && innerWidth > innerHeight && st.step !== 'name');
     if (st.step === 'cal') drawCal();
@@ -207,18 +209,22 @@ export function renderGauge(main, { calibrate = false } = {}) {
       </div>`;
   }
 
-  // Step 3: the combs, each spanning more than ten threads at true size.
+  // Step 3: the combs, each spanning more than ten threads at true size. Every one is drawn: on this step the
+  // glass scrolls, so a short screen (a phone with its browser's bars showing) still reaches them all.
+  const COMB = { top: 46, band: 26, gap: 64 };
+  const combTop = i => COMB.top + i * (COMB.band + COMB.gap);
   function drawThreads() {
     const combs = combsFor(st.dia, { more: st.more });
     if (!st.comb || !combs.find(c => c.key === st.comb)) st.comb = null;
+    const scrolled = field.scrollTop;
     drawThreadsPanel(combs);
     size();
-    const k = st.k, x0 = 16, span = W - 32;
-    let y = 46, s = '';
+    const k = st.k, x0 = 16, span = W - 32, band = COMB.band;
+    let s = '';
     over.innerHTML = '';
-    for (const c of combs) {
-      const p = c.pitch * k, depth = Math.max(3, 0.62 * c.pitch * k), band = 26;
-      if (y + band + 30 > H) break;
+    combs.forEach((c, ci) => {
+      const y = combTop(ci);
+      const p = c.pitch * k, depth = Math.max(3, 0.62 * c.pitch * k);
       const count = Math.floor(span / p);
       let teeth = `M${x0} ${y + band}V${y + depth}`;
       for (let i = 0; i < count; i++) teeth += `L${n(x0 + (i + 0.5) * p)} ${y}L${n(x0 + (i + 1) * p)} ${n(y + depth)}`;
@@ -237,10 +243,18 @@ export function renderGauge(main, { calibrate = false } = {}) {
       over.insertAdjacentHTML('beforeend', `<button type="button" class="comb-btn${on ? ' on' : ''}" data-comb="${c.key}" style="top:${y - 28}px;height:${band + 54}px" aria-pressed="${on}">
         <span><b>${fracify(t.system === 'inch' ? t.label : fullName(t))}</b> · ${esc(c.label)}${c.threads.length > 1 ? ` <small>(${c.threads.filter(x => x !== t).map(x => esc(x.label)).join(', ')} too)</small>` : ''}</span>
         <small>10 threads: ${mmText(tenThreads(c.pitch), 2)} mm</small></button>`);
-      y += band + 64;
-    }
+    });
+    const tall = Math.max(H, combTop(combs.length - 1) + band + 34);
+    svg.setAttribute('height', tall);
+    svg.setAttribute('viewBox', `0 0 ${W} ${tall}`);
     svg.innerHTML = s;
+    field.scrollTop = scrolled;
+    moreBelow();
   }
+  // A fade at the foot of the glass while there are combs further down.
+  const moreBelow = () => gauge.toggleAttribute('data-below', st.step === 'threads' && field.scrollTop + field.clientHeight < field.scrollHeight - 4);
+  field.addEventListener('scroll', moreBelow, { passive: true });
+  const smooth = matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
   function drawThreadsPanel(combs) {
     const pick = combs.find(c => c.key === st.comb);
     // Some pitches are too close for any comb (M5 × 0.8 and #10-32, M2.5 and #2-56): only the size tells them
@@ -262,7 +276,7 @@ export function renderGauge(main, { calibrate = false } = {}) {
       <p class="g-say">Hold the threads against each comb. The one where every crest sits in a notch, right out to the 10, is it.</p>
       <div class="g-row g-end">
         <button type="button" class="btn small" data-go="measure">${ICON.back} Back</button>
-        <button type="button" class="btn small" data-more>${st.more ? 'Fewer' : 'More sizes'}</button>
+        ${st.more || combsFor(st.dia, { more: true }).length > combs.length ? `<button type="button" class="btn small" data-more>${st.more ? 'Fewer' : 'More sizes'}</button>` : ''}
         <button type="button" class="btn primary g-next" data-go="name"${pick ? '' : ' disabled'}>That one ${ICON.arrow}</button>
       </div>`;
   }
@@ -469,7 +483,15 @@ export function renderGauge(main, { calibrate = false } = {}) {
     else if (b.dataset.what) { st.what = b.dataset.what; drawMeasure(); }
     else if (b.dataset.tip) { st.tip = b.dataset.tip; drawMeasure(); }
     else if (b.dataset.comb) { st.comb = b.dataset.comb; drawThreads(); }
-    else if (b.hasAttribute('data-more')) { st.more = !st.more; drawThreads(); }
+    else if (b.hasAttribute('data-more')) {
+      const had = combsFor(st.dia).length;
+      st.more = !st.more;
+      drawThreads();
+      // Show what changed: the first new comb if it's out of sight, or back to the top for fewer.
+      const y = combTop(had);
+      if (!st.more) field.scrollTo({ top: 0, behavior: smooth });
+      else if (y + COMB.band + 30 > field.scrollTop + field.clientHeight) field.scrollTo({ top: y - 40, behavior: smooth });
+    }
     else if (b.dataset.head) { st.head = b.dataset.head; drawName(); }
     else if (b.dataset.kind) { st.kind = b.dataset.kind; drawName(); }
     else if (b.dataset.putback) {
