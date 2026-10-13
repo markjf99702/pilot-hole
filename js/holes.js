@@ -1,7 +1,7 @@
 // The holes a fastener needs in a material, the bit you own that suits each, and the other way round:
 // everything one bit is right for. Every size is in millimetres. No page code, so the tests run it in Node.
 import { MM, inToMm, fracText, mmText, offWords } from './units.js';
-import { bitById, bySize } from './drills.js';
+import { BITS, bitById, bySize } from './drills.js';
 import { threadById, tapDrillMm, threadPct, TAP_RANGE, fullName } from './threads.js';
 import * as FS from './fasteners.js';
 
@@ -126,9 +126,7 @@ const BUILD = {
       holes.push(clearance(t, 'free', { name: 'Through hole', where: 'through both pieces, for a nut on the back', key: 'through', noIndex: true }));
       addHeadRecess(holes, t, hf, true);
       const nut = FS.nutFor(t);
-      if (nut) holes.push(hole({ key: 'washer', role: 'head', name: 'Counterbore for the nut', where: 'optional, on the back', noIndex: true,
-        ...nutBore(t, nut), forstner: true, depth: 'Deep enough to hide the nut and a washer.',
-        note: 'Only if the nut has to sit below the surface.' }));
+      if (nut) holes.push(nutHole(t, nut));
       const ins = FS.WOOD_INSERTS.find(i => i.thread === t.id || i.thread === t.id.replace(/^#/, ''));
       if (ins) out.related = [{ text: `Or thread it into wood with a threaded insert`, pick: { type: 'insert', size: ins.id, material: mat } }];
       out.note = 'A machine screw doesn’t grip wood on its own: put a nut and washer on the back, or use a threaded insert.';
@@ -334,11 +332,23 @@ function addHeadRecess(holes, t, hf, wood) {
   }
 }
 
-function nutBore(t, nut) {
-  // Room for a washer: about twice the bolt.
-  const ideal = Math.max(nut.wrenchIn ? nut.wrenchIn * MM * 1.25 : nut.wrenchMm * 1.25, t.d * 2.1);
-  return { ideal, min: ideal - 1.5, max: ideal + 4 };
+// A counterbore on the back for the nut and the flat washer under it: wider than the washer (which is wider
+// than the nut's corners) with a little room to get them in, flat-bottomed, and as deep as the two together.
+function nutHole(t, nut) {
+  const inch = t.system === 'inch';
+  const clear = Math.max(nut.washer.odMm, nut.acrossMm);
+  const ideal = inch ? Math.ceil((clear / MM + 1 / 16) * 32 - 1e-6) / 32 * MM : Math.ceil(clear + 1 - 1e-6);
+  const min = clear + (inch ? MM / 64 : 0.4), max = ideal + (inch ? MM * 3 / 16 : 4);
+  const usual = FORSTNERS.find(b => b.metric === !inch && b.mm >= min - 1e-6 && b.mm <= max + 1e-6);
+  const deep = nut.thickMm + nut.washer.thickMm;
+  const deepText = inch ? `${fracText(Math.ceil(deep / MM * 32 - 1e-6) / 32)}″` : mmShort(Math.ceil(deep * 2 - 1e-6) / 2);
+  const washer = inch ? `${fracText(nut.washer.odMm / MM)}″` : mmShort(nut.washer.odMm);
+  return hole({ key: 'nut', role: 'head', name: 'Counterbore for the nut', where: 'optional, on the back', noIndex: true,
+    ideal, min, max, usual: usual?.id, forstner: true,
+    depth: `At least ${deepText}, for the nut and its washer; deeper if the end of the bolt has to hide too.`,
+    note: `Wide enough for the ${washer} flat washer under the nut. A Forstner bit leaves the flat bottom it sits on. Only if the nut has to sit below the surface.` });
 }
+const FORSTNERS = BITS.filter(b => b.kind === 'forstner').sort((a, b) => a.mm - b.mm);
 
 function machineTools(t, hf) {
   const inch = t.system === 'inch';
@@ -396,6 +406,8 @@ export function missWords(h, x, side, metric) {
     return `${Math.round(x.pct)}% thread: ${side === 'below' ? 'too tight, the tap may snap' : 'too loose to hold'}`;
   }
   if (h.role === 'clear' && side === 'below' && x.bit.mm <= (h.screwMm ?? h.min)) return 'won’t clear the screw';
+  if (h.key === 'nut' && side === 'below') return `${off}: the washer won’t go in`;
+  if (h.key === 'cbore' && side === 'below') return `${off}: the head won’t go in`;
   if (h.key === 'close' && side === 'above') return `${off}: a free fit, not a close one`;
   return `${off}: ${side === 'below' ? 'too tight' : 'too loose'}`;
 }

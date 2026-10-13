@@ -306,6 +306,34 @@ test('a bit either side of a tap drill says what’s wrong in words, never an im
   assert.match(missWords(h, c.above, 'above', false), /: a free fit, not a close one$/);
 });
 
+test('a nut counterbore takes the nut’s corners and the washer under it', () => {
+  for (const t of THREADS) {
+    const h = holesFor({ type: 'machine', size: t.id, material: 'hardwood' }).holes.find(x => x.key === 'nut');
+    const nut = FS.nutFor(t);
+    assert.ok(nut.washer.odMm > nut.acrossMm, `${t.label}: the washer is wider than the nut`);
+    assert.ok(h.min > nut.washer.odMm, `${t.label}: the smallest bit it takes still fits the washer`);
+    if (t.system === 'inch') assert.ok(!bitById(h.usual).metric, `${t.label}: an inch job gets an inch Forstner`);
+    for (const s of SETS) {
+      const c = chooseBit(h, owning(s.id), 'hardwood');
+      if (c.ok) assert.ok(c.bit.mm > nut.washer.odMm, `${t.label} with ${s.id}: ${c.bit.name} is narrower than the washer`);
+    }
+  }
+  // 1/4-20: the 7/16″ nut is 0.505″ across its corners and its SAE washer 5/8″, so the fractional set's 1/2″ won't do.
+  const q = threadById('1/4-20');
+  close(FS.nutFor(q).acrossMm / 25.4, 0.505, 0.001);
+  const { h, c } = pick({ type: 'machine', size: '1/4-20', material: 'hardwood', head: 'hex' }, owning('frac29'), 'nut');
+  assert.equal(c.ok, false);
+  assert.equal(c.below.bit.id, 'f:1/2');
+  assert.equal(missWords(h, c.below, 'below', false), '0.1875″ small: the washer won’t go in');
+  assert.equal(h.usual, 'fo:3/4');
+  assert.equal(chooseBit(h, owning('frac29', 'forin'), 'hardwood').bit.id, 'fo:3/4');
+  assert.match(h.depth, /^At least 5\/16″, for the nut and its washer/);
+  assert.match(h.note, /5\/8″ flat washer/);
+  // Metric: an M6 nut's ISO 7089 washer is 12 mm across; a 3/8-16 asks for a 7/8″ Forstner, not a 20 mm one.
+  assert.equal(pick({ type: 'machine', size: 'M6', material: 'softwood' }, owning('met25'), 'nut').c.bit.id, 'm:13');
+  assert.equal(holesFor({ type: 'machine', size: '3/8-16', material: 'hardwood' }).holes.find(x => x.key === 'nut').usual, 'fo:7/8');
+});
+
 test('machine screws: heads, keys, counterbores and countersinks', () => {
   const r = holesFor({ type: 'machine', size: 'M3', material: 'aluminium', head: 'socket' });
   const cb = r.holes.find(h => h.key === 'cbore');

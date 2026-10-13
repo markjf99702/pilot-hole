@@ -59,9 +59,18 @@ const FLAT_IN = {
   '#0': [0.119, 0], '#2': [0.172, 1], '#4': [0.225, 1], '#6': [0.279, 2], '#8': [0.332, 2], '#10': [0.385, 2],
   '#12': [0.438, 3], '1/4': [0.507, 3], '5/16': [0.635, 4], '3/8': [0.762, 4], '7/16': [0.812, 4], '1/2': [0.875, 4],
 };
-// Hex wrench sizes, inch: cap screws (B18.2.1), finished nuts (B18.2.2) and machine screw nuts.
+// Hex wrench sizes, inch: cap screws (B18.2.1).
 const HEX_IN = { '1/4': 7 / 16, '5/16': 1 / 2, '3/8': 9 / 16, '7/16': 5 / 8, '1/2': 3 / 4 };
-const NUT_IN = { '#0': 5 / 32, '#2': 3 / 16, '#4': 1 / 4, '#6': 5 / 16, '#8': 11 / 32, '#10': 3 / 8, '#12': 7 / 16, '1/4': 7 / 16, '5/16': 1 / 2, '3/8': 9 / 16, '7/16': 11 / 16, '1/2': 3 / 4 };
+// Hex nuts, inch: [across the flats, thickness]. Machine screw nuts (B18.6.3) to #12, finished hex nuts (B18.2.2) from 1/4″.
+const NUT_IN = {
+  '#0': [5 / 32, 3 / 64], '#2': [3 / 16, 1 / 16], '#4': [1 / 4, 3 / 32], '#6': [5 / 16, 7 / 64], '#8': [11 / 32, 1 / 8], '#10': [3 / 8, 1 / 8],
+  '#12': [7 / 16, 5 / 32], '1/4': [7 / 16, 7 / 32], '5/16': [1 / 2, 17 / 64], '3/8': [9 / 16, 21 / 64], '7/16': [11 / 16, 3 / 8], '1/2': [3 / 4, 7 / 16],
+};
+// The flat washer under a nut, inch: SAE washers (ASME B18.21.1, narrow series), [outside diameter, thickness].
+const WASHER_IN = {
+  '#0': [3 / 16, 0.020], '#2': [1 / 4, 0.020], '#4': [5 / 16, 0.032], '#6': [3 / 8, 0.049], '#8': [7 / 16, 0.049], '#10': [1 / 2, 0.049],
+  '#12': [9 / 16, 0.065], '1/4': [5 / 8, 0.065], '5/16': [11 / 16, 0.065], '3/8': [13 / 16, 0.065], '7/16': [59 / 64, 0.065], '1/2': [1 + 1 / 16, 0.095],
+};
 
 // Metric socket head cap screws (ISO 4762): head dk, height k and key s, with the counterbore (DIN 974-1).
 const SOCKET_MM = {
@@ -78,6 +87,9 @@ const PAN_MM = { 2: 1, 2.5: 1, 3: 1, 4: 2, 5: 2, 6: 3 };
 // Hex bolts (ISO 4014/4017) and nuts (ISO 4032). Older DIN 931 and 934 parts are a size bigger at M10 and M12.
 const HEX_MM = { 2: 4, 2.5: 5, 3: 5.5, 4: 7, 5: 8, 6: 10, 8: 13, 10: 16, 12: 18 };
 const HEX_DIN = { 10: 17, 12: 19 };
+// ISO 4032 nut thickness, and ISO 7089 flat washers [outside diameter, thickness].
+const NUT_MM_THICK = { 2: 1.6, 2.5: 2, 3: 2.4, 4: 3.2, 5: 4.7, 6: 5.2, 8: 6.8, 10: 8.4, 12: 10.8 };
+const WASHER_MM = { 2: [5, 0.3], 2.5: [6, 0.5], 3: [7, 0.5], 4: [9, 0.8], 5: [10, 1], 6: [12, 1.6], 8: [16, 1.6], 10: [20, 2], 12: [24, 2.5] };
 
 export const HEADS = {
   socket: { name: 'Socket head', short: 'Socket' },
@@ -108,10 +120,17 @@ export function headFacts(t, head) {
 }
 export const headsFor = t => Object.keys(HEADS).filter(h => headFacts(t, h));
 
-// The nut a thread takes.
+// The nut a thread takes, and the flat washer under it. A hex is 2/√3 as wide across its corners as across its flats.
+const CORNERS = 2 / Math.sqrt(3);
 export function nutFor(t) {
-  if (t.system === 'inch') return NUT_IN[t.size] ? { wrenchIn: NUT_IN[t.size] } : null;
-  return HEX_MM[t.d] ? { wrenchMm: HEX_MM[t.d], dinMm: HEX_DIN[t.d] } : null;
+  if (t.system === 'inch') {
+    const n = NUT_IN[t.size], w = WASHER_IN[t.size];
+    if (!n) return null;
+    return { wrenchIn: n[0], acrossMm: n[0] * CORNERS * MM, thickMm: n[1] * MM, washer: { odMm: w[0] * MM, thickMm: w[1] * MM } };
+  }
+  if (!HEX_MM[t.d]) return null;
+  const w = WASHER_MM[t.d];
+  return { wrenchMm: HEX_MM[t.d], dinMm: HEX_DIN[t.d], acrossMm: HEX_MM[t.d] * CORNERS, thickMm: NUT_MM_THICK[t.d], washer: { odMm: w[0], thickMm: w[1] } };
 }
 
 // ---------- Lag screws ----------

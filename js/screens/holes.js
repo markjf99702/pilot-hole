@@ -13,6 +13,17 @@ const ALL_BITS = new Set(BITS.map(b => b.id));
 // and the bit the chart calls for, if there is one.
 const BOUGHT = new Set(BITS.filter(b => b.kind === 'frac' || b.kind === 'forstner' || (b.kind === 'metric' && Math.abs(b.mm * 2 - Math.round(b.mm * 2)) < 1e-9)).map(b => b.id));
 const usualBits = h => (h.usual ? new Set([...BOUGHT, h.usual]) : BOUGHT);
+// What to get for a hole with no usual bit: the nearest of the bits people buy, in the job's own units, so an
+// inch job isn't sent out for a 20 mm Forstner. Then any bit at all.
+const BOUGHT_IN = new Set([...BOUGHT].filter(id => !bitById(id).metric));
+const BOUGHT_MM = new Set([...BOUGHT].filter(id => bitById(id).metric));
+function toGet(h, metric, material) {
+  for (const pool of [metric ? BOUGHT_MM : BOUGHT_IN, BOUGHT, ALL_BITS]) {
+    const c = chooseBit(h, pool, material);
+    if (c.ok) return c.bit;
+  }
+  return null;
+}
 const lastSize = { inch: '1/4-20', metric: 'M3' };
 
 // The address for a pick, so a reload or a shared link comes back to it.
@@ -223,7 +234,7 @@ function card(h, r, owned, scale) {
         ${pctLine}${extra}</div></li>`;
   }
   // Nothing you own will do: say what to get, and what's wrong with the nearest on each side.
-  const want = c.usual || chooseBit(h, ALL_BITS, r.pick.material).bit;
+  const want = c.usual || toGet(h, metric, r.pick.material);
   const why = side => {
     const x = c[side];
     if (!x) return '';
