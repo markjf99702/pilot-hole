@@ -412,6 +412,13 @@ test('a measured diameter narrows the threads, and the combs tell close pitches 
   const c20 = combs.find(c => c.label === '20 per inch');
   assert.equal(G.threadOnComb(c20, 6.2).id, '1/4-20');
   assert.ok(G.combsFor(40).length >= 1, 'something to compare, even off the end of the table');
+  // M5 × 0.8 and #10-32 differ by 0.006 mm a thread: no comb can part them, so the gauge says to go by size.
+  const c48 = G.combsFor(4.8);
+  const m5 = c48.find(c => c.label === '0.8 mm'), ten32 = c48.find(c => c.label === '32 per inch');
+  assert.ok(m5 && ten32, c48.map(c => c.label).join(', '));
+  assert.equal(G.nearTwin(c48, m5), ten32);
+  assert.equal(G.nearTwin(combs, c20), null, '1/4-20 has no twin');
+  assert.ok(G.expectedMajor(threadById('M5')) - G.expectedMajor(threadById('10-32')) > 0.15, 'but their sizes differ');
 });
 
 test('pointed screws by gauge, and drill bits by size', () => {

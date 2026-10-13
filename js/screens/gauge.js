@@ -1,7 +1,7 @@
 // The screw gauge: calibrate the screen against a bank card, lay a screw on the glass and slide two jaws
 // to its threads and its length, hold its threads against true-size combs, and it names itself.
 import { store } from '../store.js';
-import { CARD, plausible, guessPxPerMm, threadCandidates, combsFor, threadOnComb, tenThreads,
+import { CARD, plausible, guessPxPerMm, threadCandidates, combsFor, threadOnComb, tenThreads, expectedMajor, nearTwin,
   gaugeFor, bitsNear, snapLength, screwName } from '../identify.js';
 import { holesFor, chooseBit } from '../holes.js';
 import * as FS from '../fasteners.js';
@@ -216,7 +216,18 @@ export function renderGauge(main, { calibrate = false } = {}) {
   }
   function drawThreadsPanel(combs) {
     const pick = combs.find(c => c.key === st.comb);
+    // Some pitches are too close for any comb (M5 × 0.8 and #10-32, M2.5 and #2-56): only the size tells them apart.
+    let twin = '';
+    if (pick) {
+      const other = nearTwin(combs, pick);
+      if (other) {
+        const a = threadOnComb(pick, st.dia), b = threadOnComb(other, st.dia);
+        const nm = t => `${t.system === 'metric' ? 'an' : 'a'} ${esc(t.system === 'inch' ? t.label : t.size)}`; // an M5, a #10-32
+        twin = `<p class="g-warn">${esc(fullName(a))} and ${esc(fullName(b))} have all but the same pitch, so go by the size: ${nm(a)} measures about ${expectedMajor(a).toFixed(2)} mm across its threads, ${nm(b)} about ${expectedMajor(b).toFixed(2)}. You measured ${st.dia.toFixed(2)}.</p>`;
+      }
+    }
     panel.innerHTML = `
+      ${twin}
       <p class="g-say">Hold the threads against each comb. The one where every crest sits in a notch, right out to the 10, is it.</p>
       <div class="g-row g-end">
         <button type="button" class="btn small" data-go="measure">${ICON.back} Back</button>

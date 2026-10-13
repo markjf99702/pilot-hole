@@ -52,6 +52,10 @@ export function combsFor(dMm, { more = false } = {}) {
   return combs;
 }
 
+// A comb whose pitch is within 2% of this one's: no comb can tell them apart (M5 × 0.8 and #10-32,
+// M2.5 and #2-56), so the measured size has to.
+export const nearTwin = (combs, comb) => combs.find(c => c !== comb && Math.abs(c.pitch - comb.pitch) / comb.pitch < 0.02) || null;
+
 // The ten-thread span that tells close pitches apart: 1/4-20 spans 12.7 mm, M6 × 1 spans 10, 1/4-28 spans 9.07.
 export const tenThreads = pitchMm => 10 * pitchMm;
 
