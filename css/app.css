@@ -264,6 +264,8 @@ main { max-width: 1160px; margin: 0 auto; padding: 16px 16px 40px; outline: none
 .swatch { display: block; flex: none; border-radius: 5px; }
 .sw-hardwood { fill: var(--m-hardwood); } .sw-softwood { fill: var(--m-softwood); } .sw-plywood { fill: var(--ply-a); }
 .sw-mdf { fill: var(--m-mdf); } .sw-aluminium { fill: var(--m-aluminium); } .sw-steel { fill: var(--m-steel); } .sw-printed { fill: var(--m-printed); }
+.pick-hint { margin: 6px 12px 6px; font-size: 14.5px; color: var(--muted); }
+.pick-hint .link-btn { white-space: nowrap; color: var(--ink-2); }
 @media (min-width: 940px) {
   .chips { flex-wrap: wrap; overflow: visible; -webkit-mask: none; mask: none; padding-right: 12px; }
   .pick-row { grid-template-columns: 52px minmax(0, 1fr); padding-top: 10px; }

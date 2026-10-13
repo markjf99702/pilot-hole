@@ -63,6 +63,10 @@ function sizeLabel(type, id) {
   }
 }
 
+// The fasteners the screw gauge can name, and how it should start for each: a pointed screw, or a blunt one.
+const GAUGE_TIP = { wood: 'pointed', lag: 'pointed', sheet: 'pointed', machine: 'blunt' };
+const gaugeHash = type => `#/gauge?tip=${GAUGE_TIP[type]}${GAUGE_TIP[type] === 'pointed' ? `&kind=${type}` : ''}`;
+
 const NOT_FOR = {
   lag: 'Lag screws are for wood.',
   heatset: 'Heat-set inserts go into printed parts.',
@@ -131,7 +135,8 @@ export function renderHoles(main, fromHash) {
             return `<button type="button" role="radio" class="chip mat${ok ? '' : ' off'}" data-mat="${m.id}" aria-checked="${m.id === pick.material}"${ok ? '' : ' aria-disabled="true"'}>${swatch(m.id)}${esc(m.name)}</button>`;
           }).join('')}
         </div>
-      </div>`;
+      </div>
+      ${GAUGE_TIP[pick.type] ? `<p class="pick-hint">Don’t know the size? <a class="link-btn" href="${gaugeHash(pick.type)}">Lay it on the screw gauge ${ICON.arrow}</a></p>` : ''}`;
     for (const el of $$('.chips', picker)) {
       el.addEventListener('scroll', () => edges(el), { passive: true });
       if (scroll[el.dataset.row] != null) el.scrollLeft = scroll[el.dataset.row];

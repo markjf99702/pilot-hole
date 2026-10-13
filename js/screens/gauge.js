@@ -54,6 +54,11 @@ export function renderGauge(main, hash = '') {
     ...kept,
   };
   st.reached = new Set(st.reached);
+  // Sent from the Holes screen with a screw in mind (#/gauge?tip=pointed&kind=sheet): start set for it. The
+  // kind still has to come in the size measured, or the size decides.
+  const tipIn = (hash.match(/[?&]tip=(blunt|pointed)\b/) || [])[1], kindIn = (hash.match(/[?&]kind=(wood|sheet|lag)\b/) || [])[1];
+  if (tipIn && (st.what !== 'screw' || st.tip !== tipIn)) { st.what = 'screw'; st.tip = tipIn; st.reached.clear(); }
+  if (kindIn) st.kind = kindIn;
   const recal = !!saved && !saved.same;
 
   document.body.classList.add('gauge-on');

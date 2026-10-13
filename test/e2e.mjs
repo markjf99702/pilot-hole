@@ -585,6 +585,28 @@ try {
   await fits(narrow.page, 'the gauge at 320');
   await narrow.ctx.close();
 
+  // ---------- A newcomer with a mystery screw: the Holes screen points to the gauge ----------
+  const fresh = await device({ width: 390, height: 844 }, { isMobile: true, hasTouch: true });
+  await fresh.page.goto(base);
+  await fresh.page.evaluate(() => window.pilotHole.store.setScreen(6));
+  await fresh.page.goto(base + '#/?type=sheet&size=8&into=steel');
+  await fresh.page.waitForSelector('.pick-hint');
+  assert.equal(await text(fresh.page, '.pick-hint'), 'Don’t know the size? Lay it on the screw gauge');
+  // It opens the gauge ready for a pointed screw, and names a sheet-metal screw, not a wood screw.
+  await fresh.page.click('.pick-hint a');
+  await fresh.page.waitForSelector('.gauge[data-step="measure"]');
+  assert.equal(await fresh.page.getAttribute('[data-tip="pointed"]', 'aria-checked'), 'true');
+  await jaws(fresh.page, 6, { dia: 4.05 });
+  await fresh.page.click('[data-go="name"]');
+  assert.equal(await text(fresh.page, '.gauge-name'), '#8 × 1 sheet-metal screw');
+  await fresh.page.click('.g-close');
+  await fresh.page.waitForSelector('.spec');
+  assert.equal(await text(fresh.page, '.spec'), '#8 sheet-metal screw into steel ST4.2');
+  // The gauge can't name a heat-set insert, so there's no line for one.
+  await fresh.page.click('[data-type="heatset"]');
+  assert.equal(await fresh.page.locator('.pick-hint').count(), 0);
+  await fresh.ctx.close();
+
   // ---------- On a laptop ----------
   const laptop = await device({ width: 1280, height: 800 });
   page = laptop.page;
