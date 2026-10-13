@@ -65,7 +65,7 @@ export function bitInHole({ w = 40, h = 78, d, rise, finish = 'gold', missing = 
 
 // A Forstner bit seen from above: rim, two cutting lips and the centre spur.
 function forstnerTop({ w, h, d }) {
-  const cx = w / 2, cy = h / 2, r = d / 2;
+  const r = d / 2, cx = w / 2, cy = Math.max(h / 2, h - r - 8);
   const teeth = [];
   const k = Math.max(8, Math.round(r / 2.2));
   for (let i = 0; i < k; i++) {

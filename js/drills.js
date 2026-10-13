@@ -93,7 +93,7 @@ export const SETS = [
     bits: ['n:50', 'n:43', 'n:36', 'n:29', 'n:25', 'n:21', 'n:16', 'n:7', 'n:3', 'l:F', 'l:I', 'f:5/16', 'l:Q', 'l:U', 'f:25/64', 'f:27/64', 'f:29/64'] },
   { id: 'tapmm', name: 'Metric tap drills', range: 'from a tap set, 1.6 to 10.2 mm', row: 9,
     bits: [1.6, 2.05, 2.5, 3.3, 4.2, 5, 6.8, 8.5, 10.2].map(metricId) },
-  { id: 'forin', name: 'Forstner', range: '1/4″ to 2-1/8″ by 1/8', row: 4, big: true, forstner: true,
+  { id: 'forin', name: 'Forstner', range: '1/4″ to 2-1/8″ by 1/8', row: 4, rowWide: 8, big: true, forstner: true,
     bits: range(2, 17, 1).map(e => `fo:${fracText(e / 8, 8)}`) },
   { id: 'formm', name: 'Forstner, metric', range: '15 to 35 mm', row: 5, big: true, forstner: true,
     bits: [15, 20, 25, 30, 35].map(s => `fm:${s}`) },

@@ -41,8 +41,8 @@ export function renderIndex(main) {
   // Fit each tray's columns to the screen.
   function sizeTrays() {
     for (const tray of $$('.tray', root)) {
-      const want = +tray.dataset.row;
       const cell = +tray.dataset.cell || CELL;
+      const want = tray.clientWidth > 700 ? +(tray.dataset.rowWide || tray.dataset.row) : +tray.dataset.row;
       const cols = Math.max(1, Math.min(want, Math.floor(tray.clientWidth / cell)));
       tray.style.setProperty('--cols', cols);
     }
@@ -82,13 +82,13 @@ function caseHTML(s) {
   const cell = big ? (s.forstner ? 74 : 54) : CELL;
   const scale = (cell - 8) / maxMm;
   const gone = s.bits.filter(id => store.isMissing(s.id, id)).length;
-  return `<article class="case${big ? ' big' : ''}" data-set="${s.id}">
+  return `<article class="case${big ? ' wide' : ''}" data-set="${s.id}">
     <header class="lid">
       <div class="plate"><b>${esc(s.name)}</b><span>${fracify(s.range)}</span></div>
       <span class="count" title="${s.bits.length - gone} of ${s.bits.length}">${s.bits.length - gone}<small>/${s.bits.length}</small></span>
       <button type="button" class="lid-x" data-drop="${s.id}" aria-label="I don’t have the ${esc(s.name.toLowerCase())} set">${ICON.x}</button>
     </header>
-    <div class="tray" data-row="${s.row}" data-cell="${cell}" style="--cell:${cell}px">
+    <div class="tray" data-row="${s.row}" data-row-wide="${s.rowWide || s.row}" data-cell="${cell}" style="--cell:${cell}px">
       ${s.bits.map(id => slotHTML(bitById(id), s, scale, cell, maxMm)).join('')}
     </div>
   </article>`;
@@ -97,7 +97,7 @@ function caseHTML(s) {
 function slotHTML(b, s, scale, cell, maxMm) {
   const missing = store.isMissing(s.id, b.id);
   const forstner = b.kind === 'forstner';
-  const h = forstner ? cell : 84;
+  const h = forstner && s.forstner ? cell : 84; // a Forstner bit among twist bits sits on their baseline
   const rise = 24 + 42 * Math.pow(Math.min(1, b.mm / maxMm), 0.75);
   const svg = bitInHole({ w: cell, h, d: b.mm * scale, rise, finish: finishOf(b), missing, forstner });
   return `<button type="button" class="slot${missing ? ' gone' : ''}" data-bit="${b.id}" data-set="${s.id}" aria-label="${esc(b.name)}, ${esc(bitSizes(b))}${missing ? ', missing' : ''}">
