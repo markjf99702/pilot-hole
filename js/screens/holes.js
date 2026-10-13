@@ -24,6 +24,12 @@ function toGet(h, metric, material) {
   }
   return null;
 }
+// The bit a hole gets, as its card gives it: the one of yours that suits it best, or with no bits ticked, the
+// usual size; and when nothing of yours will do, the one to get (show). For the gauge's short lists too.
+export function bitForHole(h, owned, material, metric) {
+  const c = chooseBit(h, owned.size ? owned : usualBits(h), material);
+  return { ...c, show: c.ok ? c.bit : c.usual || toGet(h, metric, material) };
+}
 const lastSize = { inch: '1/4-20', metric: 'M3' };
 // Each fastener's last size and material this visit, so a heat-set insert forcing a printed part doesn't
 // leave the wood screw you come back to going into plastic.

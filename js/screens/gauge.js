@@ -5,12 +5,12 @@ import { store } from '../store.js';
 import { CARD, plausible, guessPxPerMm, threadCandidates, combsFor, threadOnComb, tenThreads, expectedMajor, nearTwin,
   twinCall, gaugeFor, bitsNear, bitCandidates, snapLength, screwName, screwShape, fitsThread, kindFits, kindReach,
   likelyKind, pastTables } from '../identify.js';
-import { holesFor, chooseBit, screwTools } from '../holes.js';
+import { holesFor, screwTools } from '../holes.js';
 import * as FS from '../fasteners.js';
 import { fullName, pitchText } from '../threads.js';
 import { setById } from '../drills.js';
 import { MM, decIn, mmText, fracText, fixed } from '../units.js';
-import { pickHash, finishOf } from './holes.js';
+import { pickHash, finishOf, bitForHole } from './holes.js';
 import { bitSheet } from './index.js';
 import { headIcon, typeIcon, screwOnGlass, bitOnGlass } from '../draw.js';
 import { $, esc, bitHTML, bitSizes, fracify, toast, ICON } from '../ui.js';
@@ -438,10 +438,11 @@ export function renderGauge(main, hash = '') {
 
   function nameScrew(k, x0, y0) {
     const pointed = st.tip === 'pointed';
-    let name, pick, facts, shape, twinNote = '';
+    let name, pick, facts, shape, metric, twinNote = '';
     const kind = kindNow();
     if (pointed) {
       const g = gaugeFor(st.dia, kind);
+      metric = !!g.metric;
       const len = snapLength(st.len, kind === 'lag' && g.metric);
       name = screwName({ kind, gauge: g, len });
       pick = { type: kind, size: g.id };
@@ -462,17 +463,18 @@ export function renderGauge(main, hash = '') {
         twinNote += `<p class="g-twin">${an(shortName(t)) === 'an' ? 'An' : 'A'} ${esc(shortName(t))} measures about ${fixed(expectedMajor(t), 2)}\u00a0mm across its threads, ${fixed(Math.abs(off), 2)}\u00a0mm ${off > 0 ? 'less' : 'more'} than this one. Check the jaw: it may be a size the tables don’t have.</p>`;
       }
       st.thread = t;
+      metric = t.system === 'metric';
       shape = screwShape({ kind: 'machine', thread: t, len, head: st.head });
     }
     const r = holesFor({ ...pick, material: pointed ? (kind === 'sheet' ? 'steel' : 'hardwood') : 'aluminium' });
     // A loose bolt's tools are everything it takes, its nut and its tap too, not only what a tapped hole needs.
     const tools = (pointed ? r.tools : screwTools(st.thread, st.head)).filter(t => t.what !== 'Washer');
+    // Each hole in the bit the Holes screen would give it: yours, or with none ticked, the usual size.
     const owned = store.owned();
     const holes = r.holes.filter(h => !h.cone && h.key !== 'plug' && h.key !== 'straight').slice(0, 4).map(h => {
-      const c = chooseBit(h, owned, r.pick.material);
-      const b = c.ok ? c.bit : c.usual;
+      const c = bitForHole(h, owned, r.pick.material, metric);
       const note = c.near ? `a hair ${c.near}` : c.ok ? '' : 'not in your bits';
-      return `<li><span>${esc(h.name)}</span><span class="g-bit"><b>${b ? bitHTML(b) : '—'}</b>${note ? `<small>${note}</small>` : ''}</span></li>`;
+      return `<li><span>${esc(h.name)}</span><span class="g-bit"><b>${c.show ? bitHTML(c.show) : '—'}</b>${note ? `<small>${note}</small>` : ''}</span></li>`;
     }).join('');
     const chooser = pointed
       // A kind that doesn't come in this size is shown but marked off; a tap says why.
@@ -492,7 +494,7 @@ export function renderGauge(main, hash = '') {
       drawing: screwOnGlass(shape, { k, x0, y0 }),
       label: `<p class="g-kicker">It’s ${an(name)}</p><h2 class="gauge-name">${fracName(name)}</h2><p class="g-facts">${facts}</p>${twinNote}`,
       details: `${chooser}
-        <section class="g-list" aria-label="Holes"><h3>Holes</h3><ul class="g-holes">${holes}</ul></section>
+        <section class="g-list" aria-label="Holes"><h3>Holes</h3>${owned.size ? '' : `<p class="g-small g-usual">No bits ticked, so these are the usual sizes. <button type="button" class="link-btn" data-act="bits">Your bits</button></p>`}<ul class="g-holes">${holes}</ul></section>
         <section class="g-list" aria-label="Tools"><h3>Tools</h3><ul class="g-tools">${tools.map(t => `<li><span>${esc(t.what)}</span><b>${fracify(t.text)}</b></li>`).join('')}</ul></section>
         <div class="row-btns">
           <a class="btn primary" href="${pickHash(normal(pick, pointed))}">All its holes ${ICON.arrow}</a>
@@ -607,9 +609,9 @@ export function renderGauge(main, hash = '') {
     else if (b.dataset.putback) {
       const bit = b.dataset.id;
       store.setMissing(b.dataset.putback, bit, false);
-      toast(`Back in the ${setById(b.dataset.putback).name.toLowerCase()} case`);
-      drawName();
-    } else if (b.dataset.addloose) { store.addLoose(b.dataset.addloose); toast('Added to your bits'); drawName(); }
+      toast(`Back in the ${setById(b.dataset.putback).name.toLowerCase()} case`); // the store's change redraws the name
+    } else if (b.dataset.addloose) { store.addLoose(b.dataset.addloose); toast('Added to your bits'); }
+    else if (b.dataset.act === 'bits') document.dispatchEvent(new CustomEvent('pilot:bits'));
     else if (b.dataset.bit) bitSheet(b.dataset.bit);
     else if (b.dataset.go) {
       const to = b.dataset.go;
@@ -644,6 +646,8 @@ export function renderGauge(main, hash = '') {
     else draw();
   };
   window.addEventListener('resize', onResize);
+  // Bits ticked or put back while the name's showing (in Your bits, say) change its answers.
+  const offStore = store.onChange(() => { if (st.step === 'name') drawName(); });
   go(stepIn(hash), { push: false });
   zoomCheck();
 
@@ -655,5 +659,6 @@ export function renderGauge(main, hash = '') {
     document.removeEventListener('gesturestart', stopGesture);
     window.visualViewport?.removeEventListener('resize', zoomCheck);
     window.removeEventListener('resize', onResize);
+    offStore();
   };
 }

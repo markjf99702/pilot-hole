@@ -450,6 +450,26 @@ try {
   assert.deepEqual(await page.evaluate(() => window.pilotHole.store.sets), []);
   await page.click('.sheet .close');
   assert.match(await text(page, '.nobits'), /No bits ticked yet/);
+  // With no bits ticked, the gauge's holes come in the usual sizes, as on the Holes screen, not "not in your
+  // bits" on every row.
+  await page.evaluate(() => window.pilotHole.store.setScreen(6));
+  await page.click('.tabs a[data-tab="gauge"]');
+  await page.waitForSelector('.gauge[data-step="measure"]');
+  await jaws(page, 6, { dia: 6.2, len: 25.4 });
+  await page.click('[data-go="threads"]');
+  await page.locator('.comb-btn', { hasText: '1/4-20' }).click();
+  await page.click('[data-go="name"]');
+  await page.waitForSelector('.g-holes');
+  assert.doesNotMatch(await text(page, '.g-holes'), /not in your bits/);
+  assert.match(await text(page, '.g-holes'), /^Tap drill #7 /);
+  assert.match(await text(page, '.g-usual'), /No bits ticked, so these are the usual sizes/);
+  // Ticking a set from there answers in it straight away.
+  await page.click('.g-usual [data-act="bits"]');
+  await page.locator('.sheet input[data-set="frac29"]').check();
+  await page.click('.sheet .close');
+  assert.equal(await page.locator('.g-usual').count(), 0);
+  assert.match(await text(page, '.g-holes'), /^Tap drill 13\/64″ /);
+  await page.click('.g-close');
   await phone.ctx.close();
 
   // ---------- A small phone: the card won't fit lengthways, so the gauge measures across it ----------
