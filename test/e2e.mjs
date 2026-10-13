@@ -166,8 +166,11 @@ try {
   assert.match(await text(page, '.case[data-set="frac29"] .count'), /^28 ?\/29$/);
   await page.evaluate(() => { location.hash = '#/?type=wood&size=8&into=softwood'; });
   await page.waitForFunction(() => document.querySelector('.spec')?.textContent.includes('softwood'));
-  assert.match(await card(page, 'pilot').getAttribute('class'), /none/, '7/64″ is missing, so nothing fits');
-  assert.match(await text(page, '.hole[data-key="pilot"] .nearest'), /^2\.5 mm .*too tight 3 mm .*too loose$/, 'the nearest either side, from both sets');
+  // With 7/64″ gone, the neighbour that will do in softwood stands in, and says what to watch.
+  assert.match(await card(page, 'pilot').getAttribute('class'), /near/, '7/64″ is missing, so a neighbour stands in');
+  assert.equal(await text(page, '.hole[data-key="pilot"] .big'), '2.5 mm a hair tight');
+  assert.match(await text(page, '.hole[data-key="pilot"] .sizes'), /The usual is 7\/64″ .*not in your bits\.$/);
+  assert.equal(await text(page, '.hole[data-key="pilot"] .pct'), 'A hair tight: fine in softwood. Or 3 mm, a hair loose.');
 
   // A use in the sheet opens that fastener.
   await page.click('.tabs a[data-tab="index"]');

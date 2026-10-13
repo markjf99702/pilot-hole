@@ -25,6 +25,8 @@
   --head-soft: #d7ebdd;
   --good: #2b7f55;
   --good-soft: #d7ebdd;
+  --warm: #8a5a00;
+  --warm-soft: #f6e6c2;
   --steel-hi: #5a6873;
   --steel: #3a4650;
   --steel-lo: #27313a;
@@ -69,6 +71,8 @@
     --head-soft: #163020;
     --good: #6fcf9a;
     --good-soft: #163020;
+    --warm: #e9b85c;
+    --warm-soft: #3a2c10;
     --steel-hi: #4a5864;
     --steel: #2c3640;
     --steel-lo: #1b232a;
@@ -333,6 +337,7 @@ main { max-width: 1160px; margin: 0 auto; padding: 16px 16px 40px; outline: none
 }
 .tag.good { background: var(--good-soft); color: var(--good); }
 .tag.none { background: var(--accent-soft); color: var(--accent-2); }
+.tag.near { background: var(--warm-soft); color: var(--warm); }
 .big.want .bit-link { color: var(--muted); text-decoration: underline dashed var(--line-2) 2px; text-underline-offset: 5px; }
 .hole .sizes { margin: 0; font-size: 14.5px; color: var(--ink-2); }
 .hole .sizes .bit-link { font-weight: 700; text-decoration-color: var(--line-2); }

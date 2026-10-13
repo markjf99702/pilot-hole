@@ -213,23 +213,33 @@ function card(h, r, owned, scale) {
         ${extra}</div></li>`;
   }
   const glyph = (bit, missing) => bitInHole({ w: 52, h: 76, d: (bit ? bit.mm : h.ideal) * scale, rise: 40 + 14 * Math.min(1, (bit ? bit.mm : h.ideal) / 13), finish: bit ? finishOf(bit) : 'gold', missing, ghost: missing, forstner: !missing && bit?.kind === 'forstner' });
+  const link = x => `<button type="button" class="bit-link" data-bit="${x.id}">${bitHTML(x)}</button>`;
   if (c.ok) {
     const b = c.bit;
     const exact = Math.abs(c.diff) < 0.006;
-    const tag = c.pct != null && h.key === 'tap' ? `${Math.round(c.pct)}% thread` : offWords(c.diff, metric);
-    const usualLine = c.usual
-      ? (c.usual.id === b.id ? (owned.size ? 'The usual bit for it.' : 'The usual bit.') : `The usual is <button type="button" class="bit-link" data-bit="${c.usual.id}">${bitHTML(c.usual)}</button> (${esc(otherSizes(c.usual))})${owned.has(c.usual.id) || !owned.size ? '' : ', not in your bits'}.`)
-      : exact ? '' : `Aim for ${esc(sizeText(h.ideal, metric))}.`;
+    const tag = c.near ? `a hair ${c.near}` : c.pct != null && h.key === 'tap' ? `${Math.round(c.pct)}% thread` : offWords(c.diff, metric);
+    let usualLine;
+    if (c.near) {
+      // A neighbour standing in for the right bit: say which bit that is.
+      const right = c.usual || toGet(h, metric, r.pick.material);
+      usualLine = !right ? '' : c.usual ? `The usual is ${link(right)} (${esc(otherSizes(right))}), not in your bits.` : `The right size is ${link(right)}, not in your bits.`;
+    } else {
+      usualLine = c.usual
+        ? (c.usual.id === b.id ? (owned.size ? 'The usual bit for it.' : 'The usual bit.') : `The usual is ${link(c.usual)} (${esc(otherSizes(c.usual))})${owned.has(c.usual.id) || !owned.size ? '' : ', not in your bits'}.`)
+        : exact ? '' : `Aim for ${esc(sizeText(h.ideal, metric))}.`;
+    }
     const pctGood = h.key === 'tap' && c.pct >= 70 && c.pct <= 80;
-    // What a thread that's shallower or deeper than usual means for the job.
+    // What a thread that's shallower or deeper than usual means for the job, or what to watch with a near miss.
     const metal = r.pick.material === 'steel';
-    const pctLine = h.key !== 'tap' || pctGood ? ''
-      : c.pct < 70 ? `<p class="pct">A shallow thread: ${metal ? 'plenty in steel' : 'it holds, but go easy tightening it'}, and easy on the tap.</p>`
-        : '<p class="pct">A deep thread: strong, but stiff to tap. Go gently and back off often.</p>';
-    return `<li class="hole r-${h.role}" data-key="${h.key}" data-bit="${b.id}">
+    const pctLine = c.near ? `<p class="pct">${esc(c.words)}${c.other ? ` Or ${link(c.other.bit)}, a hair ${c.other.near}.` : ''}</p>`
+      : h.key !== 'tap' || pctGood ? ''
+        : c.pct < 70 ? `<p class="pct">A shallow thread: ${metal ? 'plenty in steel' : 'it holds, but go easy tightening it'}, and easy on the tap.</p>`
+          : '<p class="pct">A deep thread: strong, but stiff to tap. Go gently and back off often.</p>';
+    const tagClass = c.near ? ' near' : exact || pctGood ? ' good' : '';
+    return `<li class="hole r-${h.role}${c.near ? ' near' : ''}" data-key="${h.key}" data-bit="${b.id}">
       <div class="pic">${glyph(b)}</div>
       <div class="body">${head}
-        <p class="big"><button type="button" class="bit-link" data-bit="${b.id}">${bitHTML(b)}</button><span class="tag${exact || pctGood ? ' good' : ''}">${esc(tag)}</span></p>
+        <p class="big">${link(b)}<span class="tag${tagClass}">${esc(tag)}</span></p>
         <p class="sizes">${esc(bitSizes(b))}. ${usualLine}</p>
         ${pctLine}${extra}</div></li>`;
   }

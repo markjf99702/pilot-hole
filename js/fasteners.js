@@ -228,7 +228,7 @@ export const TYPES = [
   { id: 'sheet', name: 'Sheet-metal screw', short: 'Sheet metal', plural: 'Sheet-metal screws', sizes: SHEET_SCREWS.map(s => String(s.g)), def: '8', materials: 'all', mat: 'steel' },
   { id: 'heatset', name: 'Heat-set insert', short: 'Heat-set', plural: 'Heat-set inserts', sizes: HEATSET.map(h => h.id), def: 'M3', materials: ['printed'], mat: 'printed' },
   { id: 'insert', name: 'Threaded insert', short: 'Wood insert', plural: 'Threaded inserts for wood', sizes: WOOD_INSERTS.map(i => i.id), def: '1/4-20', materials: WOOD, mat: 'hardwood' },
-  { id: 'dowel', name: 'Dowel', plural: 'Dowels', sizes: DOWELS.map(d => d.id), def: '8', materials: WOOD, mat: 'hardwood' },
+  { id: 'dowel', name: 'Dowel', plural: 'Dowels', sizes: DOWELS.map(d => d.id), def: '3/8', materials: WOOD, mat: 'hardwood' },
   { id: 'shelfpin', name: 'Shelf pin', plural: 'Shelf pins', sizes: SHELF_PINS.map(s => s.id), def: '5', materials: WOOD, mat: 'plywood' },
   { id: 'hinge', name: 'Hinge cup', plural: 'Hinge cups', sizes: HINGE_CUPS.map(h => h.id), def: '35', materials: WOOD, mat: 'plywood' },
 ];

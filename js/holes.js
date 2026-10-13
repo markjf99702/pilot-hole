@@ -91,7 +91,7 @@ const BUILD = {
     const trad = w[col];
     const main = prod || trad;
     const pilot = hole({ key: 'pilot', name: 'Pilot hole', where: 'in the bottom piece', matsMatter: true,
-      ideal: f(main), min: f(main) - HALF64, max: f(main) + HALF64, usual: `f:${main}`,
+      ideal: f(main), min: f(main) - HALF64, max: f(main) + HALF64, usual: `f:${main}`, near: woodNear(mat, f(main)),
       depth: 'As deep as the screw goes into this piece.',
       note: prod ? '' : 'From the chart for traditional tapered screws: no figures for modern ones this size.' });
     if (prod && prod !== trad) pilot.alt.push({ label: 'Old-style tapered screws', bit: `f:${trad}`, index: `${name}, old-style` });
@@ -190,7 +190,7 @@ const BUILD = {
       const col = mat === 'softwood' ? 'soft' : 'hard';
       const v = w.prod?.[col] || w[col];
       holes.push(hole({ key: 'pilot', name: 'Pilot hole', where: 'in the wood', matsMatter: true,
-        ideal: f(v), min: f(v) - HALF64, max: f(v) + HALF64, usual: `f:${v}`,
+        ideal: f(v), min: f(v) - HALF64, max: f(v) + HALF64, usual: `f:${v}`, near: woodNear(mat, f(v)),
         depth: 'As deep as the screw goes.', note: 'The same as a wood screw this size. ' + MAT_NOTES[mat] }));
     }
     const like = threadById({ 4: '4-40', 6: '6-32', 8: '8-32', 10: '10-24', 12: '12-24', 14: '1/4-20' }[s.g]);
@@ -245,11 +245,15 @@ const BUILD = {
 
   dowel(p) {
     const d = FS.DOWELS.find(x => x.id === p.size);
-    const depth = d.metric ? `${mmShort(d.len / 2 + 1)} deep in each piece for a ${d.label} × ${d.lenLabel} dowel: half its length and 1 mm for glue.`
-      : `${fracText((d.len / 2) / MM + 1 / 16)}″ deep in each piece for a ${d.label} × ${d.lenLabel} dowel: half its length and 1/16″ for glue.`;
+    const depth = d.metric ? `${mmShort(d.len / 2 + 1)} deep in each piece for ${an(d.label)} ${d.label} × ${d.lenLabel} dowel: half its length and 1 mm for glue.`
+      : `${fracText((d.len / 2) / MM + 1 / 16)}″ deep in each piece for ${an(d.label)} ${d.label} × ${d.lenLabel} dowel: half its length and 1/16″ for glue.`;
+    // A dowel should push in by hand, so a bit any smaller than it is only a near miss, to try in scrap first.
     return { name: `${d.label} dowel`, title: `${d.label} dowel`, diagram: 'dowel',
       holes: [hole({ key: 'dowel', name: 'Dowel hole', where: 'in both pieces',
-        ideal: d.d, min: d.d - 0.12, max: d.d + 0.1, depth,
+        ideal: d.d, min: d.d - 0.03, max: d.d + 0.1, depth,
+        near: { tight: 0.1, loose: 0.2, prefer: 'loose', words: {
+          tight: 'A hair tight: try a dowel in a scrap first, and sand it down if it won’t push in by hand.',
+          loose: 'A hair loose: glue fills a gap this small.' } },
         note: 'Use a brad-point bit and a depth stop, and mark the second piece with dowel centres. A dowel should push in by hand: tight ones split the work.' })],
       tools: [{ what: 'Bit', text: 'Brad point, with a stop collar' }, { what: 'Marking', text: 'Dowel centres, or a doweling jig' }] };
   },
@@ -258,7 +262,10 @@ const BUILD = {
     const s = FS.SHELF_PINS.find(x => x.id === p.size);
     return { name: `${s.label} shelf pin`, title: `${s.label} shelf pins`, diagram: 'shelfpin',
       holes: [hole({ key: 'pin', name: 'Shelf-pin hole', where: 'in the sides',
-        ideal: s.d, min: s.d - 0.1, max: s.d + 0.12,
+        ideal: s.d, min: s.d - 0.03, max: s.d + 0.12,
+        near: { tight: 0.1, loose: 0.2, prefer: 'loose', words: {
+          tight: 'A hair tight: the pins may need a tap to go in, and won’t move easily.',
+          loose: 'A hair loose: the pins sit a little sloppy, but they hold a shelf.' } },
         depth: s.metric ? 'About 10 mm deep, or the length of the pin’s peg. Use a stop so the row matches.' : 'About 3/8″ deep. Use a stop so the row matches.',
         note: s.metric ? 'On the 32 mm system the rows sit 37 mm in from the front and back edges, holes 32 mm apart.' : 'Space them to suit; a drilling jig keeps the rows level.' })],
       tools: [{ what: 'Bit', text: 'Brad point with a stop collar, or a shelf-pin jig with its own bit' }] };
@@ -275,13 +282,15 @@ const BUILD = {
           depth: '13 mm deep for most hinges; some want 11.5 mm. Check the hinge’s sheet, and use a stop.',
           note: 'The cup’s edge sits 3–6 mm in from the door’s edge, so its centre is 20.5–23.5 mm in (22.5 mm for a 5 mm gap). A 1-3/8″ Forstner is close enough.' }),
         hole({ key: 'screws', role: 'clear', name: 'Screw holes', where: 'either side of the cup', noIndex: true,
-          ideal: f(pilot6), min: f(pilot6) - HALF64, max: f(pilot6) + HALF64, usual: `f:${pilot6}`,
+          ideal: f(pilot6), min: f(pilot6) - HALF64, max: f(pilot6) + HALF64, usual: `f:${pilot6}`, near: woodNear(mat, f(pilot6)),
           depth: 'Pilots for #6 screws, as deep as the screws.',
           note: 'Two holes 45 mm apart, 9.5 mm in from the cup’s centre towards the middle of the door. Press-in hinges want 8 mm holes there instead.' }),
       ],
       tools: [{ what: 'Bit', text: '35 mm Forstner in a drill press or a hinge jig, with a depth stop' }] };
   },
 };
+
+const an = label => (/^(8|11|18)\b/.test(label) ? 'an' : 'a'); // an 8 mm dowel, a 10 mm one
 
 function nearestSheet(g) {
   return String(FS.SHEET_SCREWS.reduce((a, b) => (Math.abs(b.g - g) < Math.abs(a.g - g) ? b : a)).g);
@@ -399,7 +408,32 @@ export function chooseBit(h, owned, material = 'hardwood') {
   const below = [...list].reverse().find(b => b.mm < h.min);
   const above = list.find(b => b.mm > h.max);
   const info = b => b && { bit: b, diff: b.mm - h.ideal, pct: h.thread ? threadPct(h.thread, b.mm) : null };
+  // Some holes forgive a bit a hair either side, with a caveat: a pilot in wood, a dowel, a shelf pin.
+  // Then the nearest one on the side the hole prefers will do, and the other side is named too.
+  if (h.near) {
+    const tight = below && h.ideal - below.mm <= h.near.tight + eps ? below : null;
+    const loose = above && above.mm - h.ideal <= h.near.loose + eps ? above : null;
+    const best = h.near.prefer === 'loose' ? loose || tight : tight || loose;
+    if (best) {
+      const side = best === tight ? 'tight' : 'loose', other = best === tight ? loose : tight;
+      return { bit: best, ok: true, near: side, words: h.near.words[side], diff: best.mm - h.ideal, usual, pct: null,
+        other: other && { bit: other, near: side === 'tight' ? 'loose' : 'tight', diff: other.mm - h.ideal } };
+    }
+  }
   return { ok: false, below: info(below), above: info(above), usual };
+}
+
+// A pilot in wood forgives a bit a 64th either side of the chart's (less for small screws, where a 64th
+// is a lot), with a word on what to watch. MDF would rather be loose than split.
+function woodNear(mat, ideal) {
+  const by = Math.min(MM / 64, 0.15 * ideal);
+  const [tight, loose] = {
+    hardwood: ['A hair tight in hardwood: wax the screw and drive it slowly.', 'A hair loose: it holds, with a little less bite.'],
+    plywood: ['A hair tight: wax the screw, and go slowly near an edge.', 'A hair loose: it holds, with a little less bite.'],
+    softwood: ['A hair tight: fine in softwood.', 'A hair loose: softwood grips less, so go no bigger.'],
+    mdf: ['A hair tight: MDF splits, so keep well in from the edges.', 'A hair loose: it holds, but don’t overtighten.'],
+  }[mat];
+  return { tight: by, loose: by, prefer: mat === 'mdf' ? 'loose' : 'tight', words: { tight, loose } };
 }
 
 // Why the nearest bit on one side of a hole's range won't do, in words: "95% thread: too tight, the tap

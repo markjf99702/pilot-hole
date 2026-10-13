@@ -236,6 +236,34 @@ test('wood screws: pilot, shank, countersink and plug', () => {
   }
 });
 
+test('a missing pilot bit names the neighbour that will do, with what to watch', () => {
+  // 1/8″ gone from the case: a #8 in hardwood takes 7/64″ (the old-style size) with wax.
+  const without18 = ownedBits({ sets: ['frac29'], missing: ['frac29:f:1/8'] });
+  let { c } = pick({ type: 'wood', size: '8', material: 'hardwood' }, without18, 'pilot');
+  assert.equal(c.ok, true);
+  assert.equal(c.bit.id, 'f:7/64');
+  assert.equal(c.near, 'tight');
+  assert.match(c.words, /wax the screw/);
+  assert.equal(c.other.bit.id, 'f:9/64');
+  assert.equal(c.other.near, 'loose');
+  assert.equal(c.usual.id, 'f:1/8');
+  // MDF would rather be loose than split.
+  ({ c } = pick({ type: 'wood', size: '8', material: 'mdf' }, without18, 'pilot'));
+  assert.equal(c.bit.id, 'f:9/64');
+  assert.equal(c.near, 'loose');
+  // Softwood, with a metric set too: 2.5 mm stands in for a missing 7/64″.
+  ({ c } = pick({ type: 'wood', size: '8', material: 'softwood' }, ownedBits({ sets: ['frac29', 'met25'], missing: ['frac29:f:7/64'] }), 'pilot'));
+  assert.equal(c.bit.id, 'm:2.5');
+  assert.equal(c.near, 'tight');
+  // A small screw is fussier: a #4 in hardwood won't take 1/16″ for a missing 5/64″.
+  ({ c } = pick({ type: 'wood', size: '4', material: 'hardwood' }, ownedBits({ sets: ['frac29'], missing: ['frac29:f:5/64'] }), 'pilot'));
+  assert.equal(c.ok, false);
+  // Hinge screws and sheet-metal screws in wood forgive the same way; tap drills never do.
+  assert.equal(pick({ type: 'hinge', size: '35', material: 'hardwood' }, ownedBits({ sets: ['frac29'], missing: ['frac29:f:7/64'] }), 'screws').c.near, 'tight');
+  assert.equal(pick({ type: 'sheet', size: '8', material: 'hardwood' }, without18, 'pilot').c.near, 'tight');
+  assert.equal(pick({ type: 'machine', size: 'M3', material: 'aluminium' }, owning('frac29'), 'tap').c.ok, false);
+});
+
 // ---------- Machine screws ----------
 
 test('machine screws: tap drill in the bits you own, with the thread it gives', () => {
@@ -408,13 +436,18 @@ test('lags, sheet-metal screws, inserts, dowels, shelf pins and hinge cups', () 
   assert.equal(pick({ type: 'insert', size: '1/4-20', material: 'softwood' }, frac, 'insert').c.bit.id, 'f:23/64');
   assert.equal(pick({ type: 'insert', size: 'M6', material: 'plywood' }, frac, 'insert').c.bit.id, 'f:23/64');
   assert.match(holesFor({ type: 'insert', size: 'M10', material: 'hardwood' }).holes[0].note, /doesn’t make a knife-thread/);
-  // Dowels and shelf pins want the exact size, and say so when it isn't there.
-  assert.equal(pick({ type: 'dowel', size: '8' }, frac, 'dowel').c.bit.id, 'f:5/16');
+  // Dowels and shelf pins want the exact size; a bit a hair off is a near miss, with what to watch.
+  const dw = pick({ type: 'dowel', size: '8' }, frac, 'dowel').c;
+  assert.equal(dw.bit.id, 'f:5/16');
+  assert.equal(dw.near, 'tight', 'a 5/16″ bit is a hair small for an 8 mm dowel, which should push in by hand');
+  assert.match(dw.words, /try a dowel in a scrap first/);
+  assert.equal(pick({ type: 'dowel', size: '8' }, owning('met25'), 'dowel').c.near, undefined, 'an 8 mm bit is just right');
   assert.equal(pick({ type: 'dowel', size: '10' }, frac, 'dowel').c.bit.id, 'f:25/64');
-  assert.match(holesFor({ type: 'dowel', size: '8' }).holes[0].depth, /^21 mm deep/);
+  assert.match(holesFor({ type: 'dowel', size: '8' }).holes[0].depth, /^21 mm deep in each piece for an 8 mm × 40 mm dowel/);
+  assert.equal(normalizePick({ type: 'dowel' }).size, '3/8', 'an inch dowel to start with');
   const pin = pick({ type: 'shelfpin', size: '5' }, frac, 'pin').c;
-  assert.equal(pin.ok, false);
-  assert.equal(pin.above.bit.id, 'f:13/64');
+  assert.equal(pin.bit.id, 'f:13/64');
+  assert.equal(pin.near, 'loose');
   assert.equal(pick({ type: 'shelfpin', size: '5' }, owning('met25'), 'pin').c.bit.id, 'm:5');
   // Hinge cups need a Forstner: twist bits don't count.
   const cup = pick({ type: 'hinge', size: '35', material: 'plywood' }, frac, 'cup').c;
