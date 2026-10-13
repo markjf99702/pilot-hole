@@ -1,0 +1,10 @@
+{
+  "name": "pilot-hole",
+  "private": true,
+  "type": "module",
+  "description": "The drill bit for any screw, bolt or insert.",
+  "scripts": {
+    "start": "npx --yes http-server -c-1 -p 9500 .",
+    "test": "node --test test/unit.test.mjs"
+  }
+}
