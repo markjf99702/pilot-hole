@@ -16,7 +16,7 @@ window.pilotHole = { prev: '#/' };
 const SCREENS = {
   holes: { title: 'Pilot Hole', render: h => renderHoles(main, pickFromHash(h)) },
   index: { title: 'Drill index · Pilot Hole', render: () => renderIndex(main) },
-  gauge: { title: 'Screw gauge · Pilot Hole', render: h => renderGauge(main, { calibrate: /[?&]calibrate/.test(h) }) },
+  gauge: { title: 'Screw gauge · Pilot Hole', render: h => renderGauge(main, h) },
 };
 
 function screenOf(hash) {
@@ -29,6 +29,8 @@ function route() {
   // Changing the pick on the Holes screen rewrites the address; that's not a new screen,
   // but a link to another fastener (from a bit's sheet, say) draws it afresh.
   if (id === current && id === 'holes' && cleanup && !pickFromHash(location.hash)) return;
+  // The gauge moves between its own steps (Back and Forward too) without starting over.
+  if (id === current && id === 'gauge' && cleanup) return;
   cleanup?.();
   cleanup = null;
   if (current && current !== 'gauge') window.pilotHole.prev = lastHash;

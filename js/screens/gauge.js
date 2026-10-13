@@ -27,12 +27,21 @@ const PAST = {
 const KINDS = [['wood', 'Wood screw', 'Wood screws'], ['sheet', 'Sheet-metal screw', 'Sheet-metal screws'], ['lag', 'Lag screw', 'Lag screws']];
 const LONGEST = 160; // mm: the − and + go this far, past the glass, for a screw longer than the screen
 
-export function renderGauge(main, { calibrate = false } = {}) {
+// Each step has its own address, so the phone's Back goes back a step and Forward comes forward again.
+// "?calibrate" is the Card step, as Your bits links to it.
+const stepIn = h => (/[?&]calibrate\b/.test(h) ? 'cal' : (h.match(/[?&]step=(threads|name)\b/) || [])[1] || 'measure');
+const hashFor = step => (step === 'cal' ? '#/gauge?calibrate' : step === 'measure' ? '#/gauge' : `#/gauge?step=${step}`);
+// The measurement, kept while the page is open: Back, Forward, or coming back to the gauge from another screen
+// finds the jaws where you left them.
+const KEEP = ['what', 'tip', 'dia', 'len', 'more', 'comb', 'head', 'kind', 'tucked', 'reached'];
+let kept = null;
+
+export function renderGauge(main, hash = '') {
   const saved = store.screen();
   const coarse = matchMedia('(pointer: coarse)').matches;
   const phone = coarse && Math.min(screen.width, screen.height) < 600;
   const st = {
-    step: calibrate || !saved?.same ? 'cal' : 'measure',
+    step: 'measure',
     k: saved?.pxPerMm || guessPxPerMm({ coarse, shortSide: Math.min(screen.width, screen.height) }),
     calEdge: 'long',
     what: 'screw',          // screw or bit
@@ -41,7 +50,10 @@ export function renderGauge(main, { calibrate = false } = {}) {
     more: false, comb: null, thread: null, head: null,
     kind: null,             // a pointed screw's kind, once picked: wood, sheet or lag
     tucked: false,          // the panel tucked away, for a screw longer than the glass
+    reached: new Set(),     // the steps past Measure this measurement has got to, so Forward can go back to them
+    ...kept,
   };
+  st.reached = new Set(st.reached);
   const recal = !!saved && !saved.same;
 
   document.body.classList.add('gauge-on');
@@ -71,10 +83,41 @@ export function renderGauge(main, { calibrate = false } = {}) {
   }
   const corner = () => (st.step === 'cal' ? { x0: 14, y0: st.calEdge === 'long' ? 14 : 64 } : { x0: Math.round(14 + 7 * st.k), y0: Math.round(34 + 5 * st.k) });
 
+  // The steps along the top. Any you can go back (or on) to is a button: Card to calibrate again, Measure to
+  // change the measurement. Threads is skipped for a pointed screw or a drill bit.
   function drawSteps() {
     const at = STEPS.findIndex(s => s[0] === st.step);
-    $('.g-steps', gauge).innerHTML = STEPS.map(([id, name], i) => `<li class="${i < at ? 'done' : i === at ? 'now' : ''}"${i === at ? ' aria-current="step"' : ''}>${name}</li>`).join('');
+    const skip = st.what === 'bit' || st.tip === 'pointed';
+    $('.g-steps', gauge).innerHTML = STEPS.map(([id, name], i) => {
+      const skipped = id === 'threads' && skip;
+      const cls = i === at ? 'now' : skipped ? 'skip' : i < at ? 'done' : '';
+      const can = i !== at && !skipped && reachable(id) === id;
+      return `<li class="${cls}"${i === at ? ' aria-current="step"' : ''}>${can ? `<button type="button" data-step="${id}">${name}</button>` : name}</li>`;
+    }).join('');
   }
+
+  // Where a step can go: nowhere past the Card until the screen's calibrated, and nowhere past Measure that this
+  // measurement hasn't got to (Threads only for a blunt screw, and nothing for a size past the tables).
+  function reachable(step) {
+    if (step === 'cal' || !store.screen()?.same) return 'cal';
+    if (step === 'measure' || !st.reached.has(step) || pastTables(st.dia, sort())) return 'measure';
+    if (step === 'threads' && (st.what === 'bit' || st.tip === 'pointed')) return 'measure';
+    return step;
+  }
+  // Go to a step, as a new place in the history unless it's only putting the address right.
+  function go(step, { push = true } = {}) {
+    const to = reachable(step);
+    // Leaving the Card step without "That's it" keeps the calibration there was.
+    if (st.step === 'cal' && to !== 'cal') st.k = store.screen()?.pxPerMm ?? st.k;
+    st.step = to;
+    kept = Object.fromEntries(KEEP.map(x => [x, st[x]]));
+    const h = hashFor(to);
+    if (location.hash !== h) history[push ? 'pushState' : 'replaceState'](null, '', h);
+    if (to !== 'measure') gauge.classList.remove('tucked');
+    draw();
+  }
+  // A new measurement hasn't got anywhere yet.
+  const remeasured = () => st.reached.clear();
 
   function draw() {
     size();
@@ -509,7 +552,7 @@ export function renderGauge(main, { calibrate = false } = {}) {
     const dx = e.clientX - r.left - drag.x, dy = e.clientY - r.top - drag.y;
     if (drag.what === 'cal-long') st.k = clampCal((drag.k * CARD.long + dy) / CARD.long);
     else if (drag.what === 'cal-short') st.k = clampCal((drag.k * CARD.short + dx) / CARD.short);
-    else if (drag.what === 'dia') st.dia = clamp(drag.dia + dx / st.k, 0.5, maxDia());
+    else if (drag.what === 'dia') { st.dia = clamp(drag.dia + dx / st.k, 0.5, maxDia()); remeasured(); }
     else st.len = clamp(drag.len + dy / st.k, 1, Math.max(maxLen(), drag.len));
     st.step === 'cal' ? drawCal() : drawMeasure();
   });
@@ -530,11 +573,12 @@ export function renderGauge(main, { calibrate = false } = {}) {
       st.k = clampCal(st.k + +b.dataset.nudge / edge);
       drawCal();
     } else if (b.dataset.edge) { st.calEdge = b.dataset.edge; st.edgeChosen = true; drawCal(); }
-    else if (b.dataset.d) { st.dia = clamp(st.dia + +b.dataset.d, 0.5, maxDia()); drawMeasure(); }
+    else if (b.dataset.d) { st.dia = clamp(st.dia + +b.dataset.d, 0.5, maxDia()); remeasured(); drawMeasure(); }
     else if (b.dataset.l) { st.len = clamp(st.len + +b.dataset.l, 1, LONGEST); drawMeasure(); }
     else if (b.hasAttribute('data-tuck')) { st.tucked = !st.tucked; drawMeasure(); }
-    else if (b.dataset.what) { st.what = b.dataset.what; drawMeasure(); }
-    else if (b.dataset.tip) { st.tip = b.dataset.tip; drawMeasure(); }
+    else if (b.dataset.what) { st.what = b.dataset.what; remeasured(); drawSteps(); drawMeasure(); }
+    else if (b.dataset.tip) { st.tip = b.dataset.tip; remeasured(); drawSteps(); drawMeasure(); }
+    else if (b.dataset.step) go(b.dataset.step);
     else if (b.dataset.comb) { st.comb = b.dataset.comb; drawThreads(); }
     else if (b.hasAttribute('data-more')) {
       const had = combsFor(st.dia).length;
@@ -559,18 +603,26 @@ export function renderGauge(main, { calibrate = false } = {}) {
     } else if (b.dataset.addloose) { store.addLoose(b.dataset.addloose); toast('Added to your bits'); drawName(); }
     else if (b.dataset.bit) bitSheet(b.dataset.bit);
     else if (b.dataset.go) {
-      if (st.step === 'cal' && b.dataset.go === 'measure') {
+      const to = b.dataset.go;
+      if (st.step === 'cal' && to === 'measure') {
         if (!plausible(st.k)) { toast('That doesn’t look like a card: try again'); return; }
         store.setScreen(st.k);
         toast('Calibrated');
       }
-      if (b.dataset.go === 'threads') { st.comb = combsFor(st.dia)[0]?.key || null; st.more = false; }
-      if (b.dataset.go === 'measure' && st.step === 'name') st.head = null;
-      st.step = b.dataset.go;
-      if (st.step !== 'measure') gauge.classList.remove('tucked');
-      draw();
+      if (to === 'threads') { st.comb = combsFor(st.dia)[0]?.key || null; st.more = false; }
+      if (to === 'measure' && st.step === 'name') st.head = null;
+      if (to === 'threads' || to === 'name') st.reached.add(to);
+      go(to);
     }
   });
+
+  // Back and Forward between the steps: the address changes, the gauge goes to that step.
+  const onHash = () => {
+    const want = stepIn(location.hash);
+    if (want === st.step) return;
+    go(want, { push: false });
+  };
+  window.addEventListener('hashchange', onHash);
 
   // ---------- Zoom ----------
   // Pinching on the gauge is blocked; if the page is zoomed anyway, say so, because sizes would be wrong.
@@ -579,14 +631,16 @@ export function renderGauge(main, { calibrate = false } = {}) {
   document.addEventListener('gesturestart', stopGesture);
   window.visualViewport?.addEventListener('resize', zoomCheck);
   const onResize = () => {
-    if (st.step !== 'cal' && store.screen() && !store.screen().same) { st.step = 'cal'; }
-    draw();
+    if (st.step !== 'cal' && store.screen() && !store.screen().same) go('cal', { push: false });
+    else draw();
   };
   window.addEventListener('resize', onResize);
-  draw();
+  go(stepIn(hash), { push: false });
   zoomCheck();
 
   return () => {
+    kept = Object.fromEntries(KEEP.map(x => [x, st[x]]));
+    window.removeEventListener('hashchange', onHash);
     document.body.classList.remove('gauge-on');
     meta.content = metaWas;
     document.removeEventListener('gesturestart', stopGesture);

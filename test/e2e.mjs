@@ -44,6 +44,21 @@ const squash = s => s.replace(/\s+/g, ' ').trim();
 const text = async (page, sel) => squash(await page.locator(sel).first().innerText());
 const fits = async (page, where) => assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `${where} scrolls sideways`);
 const card = (page, key) => page.locator(`.hole[data-key="${key}"]`);
+// Drag the gauge's jaws from wherever they are to a size across the threads and a length, on a screen
+// calibrated at k pixels to the millimetre. The gauge keeps them where they were left, so start from the readings.
+async function jaws(page, k, { dia, len }) {
+  const f = await page.locator('#gField').boundingBox();
+  const x0 = Math.round(14 + 7 * k), y0 = Math.round(34 + 5 * k);
+  const [d0, l0] = await page.evaluate(() => [...document.querySelectorAll('.g-meas .g-read b')].map(b => parseFloat(b.textContent)));
+  if (dia != null) {
+    await page.mouse.move(f.x + x0 + d0 * k, f.y + f.height - 30); await page.mouse.down();
+    await page.mouse.move(f.x + x0 + dia * k, f.y + f.height - 30, { steps: 5 }); await page.mouse.up();
+  }
+  if (len != null) {
+    await page.mouse.move(f.x + f.width - 30, f.y + y0 + l0 * k); await page.mouse.down();
+    await page.mouse.move(f.x + f.width - 30, f.y + y0 + len * k, { steps: 5 }); await page.mouse.up();
+  }
+}
 
 async function device(viewport, opts = {}) {
   const ctx = await browser.newContext({ viewport, deviceScaleFactor: 2, ...opts });
@@ -269,6 +284,29 @@ try {
   await page.waitForSelector('.comb-btn');
   const combs = await page.locator('.comb-btn b').allInnerTexts();
   assert.ok(combs.includes('1/4-20') && combs.includes('1/4-28') && combs.includes('M6 × 1'), combs.join(', '));
+  // The steps along the top go back (and on again), and so do the phone's Back and Forward, keeping the measurement.
+  await page.click('.g-steps [data-step="measure"]');
+  await page.waitForSelector('.gauge[data-step="measure"]');
+  assert.match(await text(page, '.g-meas .g-read'), /^6\.2 mm/, 'going back a step keeps the measurement');
+  await page.goBack();
+  await page.waitForSelector('.gauge[data-step="threads"]');
+  await page.goBack();
+  await page.waitForSelector('.gauge[data-step="measure"]');
+  assert.equal(await page.evaluate(() => location.hash), '#/gauge', 'Back went back a step, not out of the gauge');
+  assert.match(await text(page, '.g-meas .g-read'), /^6\.2 mm/);
+  await page.goForward();
+  await page.waitForSelector('.gauge[data-step="threads"]');
+  assert.equal(await page.locator('.comb-btn').count(), combs.length);
+  // Card, to calibrate again; leaving it without "That's it" keeps the calibration there was.
+  await page.click('.g-steps [data-step="cal"]');
+  await page.waitForSelector('.gauge[data-step="cal"]');
+  await page.click('[data-nudge="1"]');
+  await page.click('.g-steps [data-step="threads"]');
+  await page.waitForSelector('.comb-btn');
+  await page.click('.g-steps [data-step="cal"]');
+  assert.equal(await page.evaluate(() => parseFloat(document.querySelector('.g-read b').textContent)), 6, 'a nudge without That’s it changed the calibration');
+  await page.click('.g-steps [data-step="threads"]');
+  await page.waitForSelector('.comb-btn');
   await page.locator('.comb-btn', { hasText: '1/4-20' }).click();
   await page.click('[data-go="name"]');
   await page.waitForSelector('.gauge-name');
@@ -288,6 +326,13 @@ try {
   assert.equal(await text(page, '.spec'), '1/4-20 hex bolt into aluminium', 'the Holes screen calls it what the gauge does');
   assert.equal(await page.evaluate(() => document.body.classList.contains('gauge-on')), false, 'leaving the gauge unlocks the page');
   assert.match(await page.getAttribute('meta[name="viewport"]', 'content'), /^width=device-width, initial-scale=1, viewport-fit=cover$/);
+  // Back from there is the gauge's Name step again, with the bolt as it was.
+  await page.goBack();
+  await page.waitForSelector('.gauge-name');
+  assert.equal(await text(page, '.gauge-name'), '1/4-20 × 1 hex bolt');
+  await page.click('.g-close');
+  await page.waitForSelector('.spec');
+  assert.equal(await text(page, '.spec'), '1/4-20 hex bolt into aluminium', 'closing the gauge goes back to where you were');
 
   // A metric screw by comb, and a drill bit by its shank.
   await page.click('.tabs a[data-tab="gauge"]');
@@ -338,12 +383,8 @@ try {
   await page.waitForSelector('.gauge[data-step="measure"]');
   assert.match(await text(page, '.g-panel'), /Length under the head; a flat head, overall/i);
   assert.match(await page.locator('.g-tell').first().textContent(), /a flat head: its top on it/);
-  const gx0 = Math.round(14 + 7 * 6), gy0 = Math.round(34 + 5 * 6);
-  const fw = await page.locator('#gField').boundingBox();
-  await page.mouse.move(fw.x + gx0 + 6.2 * 6, fw.y + fw.height - 30); await page.mouse.down();
-  await page.mouse.move(fw.x + gx0 + 4.1 * 6, fw.y + fw.height - 30, { steps: 5 }); await page.mouse.up();
-  await page.mouse.move(fw.x + fw.width - 30, fw.y + gy0 + 25.4 * 6); await page.mouse.down();
-  await page.mouse.move(fw.x + fw.width - 30, fw.y + gy0 + 31.75 * 6, { steps: 5 }); await page.mouse.up();
+  const gy0 = Math.round(34 + 5 * 6);
+  await jaws(page, 6, { dia: 4.1, len: 31.75 });
   await page.click('[data-go="name"]');
   assert.equal(await text(page, '.gauge-name'), '#8 × 1-1/4 wood screw');
   const ws = await page.evaluate(() => { const b = document.querySelector('.g-draw .sg').getBBox(); return { top: b.y, bottom: b.y + b.height }; });
@@ -352,8 +393,7 @@ try {
   // Fatter than any wood screw: 7.8 mm pointed is a 5/16″ lag, and the wood screw chip, marked off, says why not.
   await page.click('.g-result [data-go="measure"]');
   await page.waitForSelector('.gauge[data-step="measure"]');
-  await page.mouse.move(fw.x + gx0 + 4.1 * 6, fw.y + fw.height - 30); await page.mouse.down();
-  await page.mouse.move(fw.x + gx0 + 7.8 * 6, fw.y + fw.height - 30, { steps: 5 }); await page.mouse.up();
+  await jaws(page, 6, { dia: 7.8 });
   assert.match(await text(page, '.g-could'), /^Could be a 5\/16″ lag screw$/);
   await page.click('[data-go="name"]');
   assert.equal(await text(page, '.gauge-name'), '5/16″ × 1-1/4 lag screw');
@@ -365,8 +405,7 @@ try {
   await page.click('.g-result [data-go="measure"]');
   await page.waitForSelector('.gauge[data-step="measure"]');
   await page.click('[data-tip="blunt"]');
-  await page.mouse.move(fw.x + gx0 + 7.8 * 6, fw.y + fw.height - 30); await page.mouse.down();
-  await page.mouse.move(fw.x + gx0 + 15 * 6, fw.y + fw.height - 30, { steps: 5 }); await page.mouse.up();
+  await jaws(page, 6, { dia: 15 });
   assert.match(await text(page, '.g-could'), /Bigger than anything in the tables: they stop at 1\/2″ and M12/);
   assert.equal(await page.locator('.g-panel [data-go="threads"]').isDisabled(), true, 'no going on to name a 15 mm bolt');
   await page.click('.g-close');

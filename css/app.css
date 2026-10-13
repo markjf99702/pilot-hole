@@ -507,6 +507,14 @@ body.gauge-on > .jd-foot { display: none; }
 @media (max-width: 339px) { .g-steps { padding-right: 0; } .g-steps li { padding: 6px 5px; } }
 .g-steps li.done { color: var(--steel-ink); }
 .g-steps li.now { background: var(--bg); color: var(--ink); }
+.g-steps li.skip { opacity: .45; }
+/* A step you can go back (or on) to: the whole pill is the button, a little taller than it looks */
+.g-steps li > button {
+  display: block; margin: -11px -8px; padding: 11px 8px; border: 0; border-radius: 999px; background: none;
+  font: inherit; letter-spacing: inherit; text-transform: inherit; color: var(--steel-ink);
+}
+.g-steps li > button:hover { background: rgba(255, 255, 255, .12); }
+@media (max-width: 339px) { .g-steps li > button { margin: -11px -5px; padding: 11px 5px; } }
 .g-zoom { flex-basis: 100%; text-align: center; padding: 4px 8px; border-radius: 8px; background: var(--accent); color: #fff; font-weight: 650; font-size: 14px; }
 .g-field { position: relative; flex: 1; min-height: 0; overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none; }
 /* The glass: light in both schemes, so a screw stands out on it. On the Name step only the band the
