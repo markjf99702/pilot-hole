@@ -102,6 +102,16 @@ try {
   await page.click('[data-type="machine"]');
   assert.equal(await text(page, '.spec'), 'M3 socket head into softwood');
   assert.ok(await card(page, 'through').count());
+  // The nut's counterbore says how much room a bit leaves around the 7 mm washer, and that the usual is a Forstner,
+  // not that 5/16″ is a hair small of some size in between.
+  assert.equal(await text(page, '.hole[data-key="nut"] .tag'), '0.94 mm to spare');
+  assert.match(await text(page, '.hole[data-key="nut"] .sizes'), /The usual is a 10 mm Forstner \(0\.3937″\), not in your bits\./);
+  await page.evaluate(() => { location.hash = '#/?type=machine&size=1%2F4-20&into=hardwood&head=hex'; });
+  await page.waitForFunction(() => document.querySelector('.spec')?.textContent.includes('1/4-20'));
+  assert.match(await text(page, '.hole[data-key="nut"] .sizes'), /^Forstner, 0\.75″ · 19\.05 mm\. Nearest you have:/, 'it says the 3/4″ it wants is a Forstner');
+  assert.match(await text(page, '.hole[data-key="nut"] .nearest'), /1\/2″ 0\.125″ narrower than the washer: it won’t go in/);
+  await page.evaluate(() => { location.hash = '#/?type=machine&size=M3&into=softwood&head=socket'; });
+  await page.waitForFunction(() => document.querySelector('.spec')?.textContent.includes('M3'));
   // Into aluminium: no metric bits yet, so the tap drill says what's wrong with the nearest.
   await page.click('[data-mat="aluminium"]');
   assert.equal(await text(page, '.spec'), 'M3 socket head into aluminium');

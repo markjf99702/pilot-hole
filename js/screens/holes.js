@@ -4,7 +4,7 @@ import { holesFor, chooseBit, normalizePick, missWords } from '../holes.js';
 import * as FS from '../fasteners.js';
 import { threadById, goodTap } from '../threads.js';
 import { bitById, BITS, setById } from '../drills.js';
-import { MM, decIn, mmText } from '../units.js';
+import { MM, decIn, mmText, offText } from '../units.js';
 import { bitInHole, coneGlyph, typeIcon, headIcon, swatch, section } from '../draw.js';
 import { $, $$, esc, bitHTML, bitSizes, sizeText, offWords, fracify, toast, ICON } from '../ui.js';
 
@@ -226,16 +226,20 @@ function card(h, r, owned, scale) {
   if (c.ok) {
     const b = c.bit;
     const exact = Math.abs(c.diff) < 0.006;
-    const tag = c.near ? `a hair ${c.near}` : c.pct != null && h.key === 'tap' ? `${Math.round(c.pct)}% thread` : offWords(c.diff, metric);
+    // A hole that only has to clear something (the washer under a nut) says how much room a bit leaves.
+    const roomy = h.spare != null && !c.near;
+    const tag = c.near ? `a hair ${c.near}` : c.pct != null && h.key === 'tap' ? `${Math.round(c.pct)}% thread`
+      : roomy ? `${offText(b.mm - h.spare, metric)} to spare` : offWords(c.diff, metric);
     let usualLine;
     if (c.near) {
       // A neighbour standing in for the right bit: say which bit that is.
       const right = c.usual || toGet(h, metric, r.pick.material);
       usualLine = !right ? '' : c.usual ? `The usual is ${link(right)} (${esc(otherSizes(right))}), not in your bits.` : `The right size is ${link(right)}, not in your bits.`;
     } else {
+      const forstner = c.usual?.kind === 'forstner' ? ' Forstner' : '';
       usualLine = c.usual
-        ? (c.usual.id === b.id ? (owned.size ? 'The usual bit for it.' : 'The usual bit.') : `The usual is ${link(c.usual)} (${esc(otherSizes(c.usual))})${owned.has(c.usual.id) || !owned.size ? '' : ', not in your bits'}.`)
-        : exact ? '' : `Aim for ${esc(sizeText(h.ideal, metric))}.`;
+        ? (c.usual.id === b.id ? (owned.size ? 'The usual bit for it.' : 'The usual bit.') : `The usual is ${forstner ? 'a ' : ''}${link(c.usual)}${forstner} (${esc(otherSizes(c.usual))})${owned.has(c.usual.id) || !owned.size ? '' : ', not in your bits'}.`)
+        : exact || roomy ? '' : `Aim for ${esc(sizeText(h.ideal, metric))}.`;
     }
     const pctGood = h.key === 'tap' && goodTap(c.pct);
     // What a thread that's shallower or deeper than usual means for the job, or what to watch with a near miss.
@@ -244,12 +248,12 @@ function card(h, r, owned, scale) {
       : h.key !== 'tap' || pctGood ? ''
         : c.pct < 70 ? `<p class="pct">A shallow thread: ${metal ? 'plenty in steel' : 'it holds, but go easy tightening it'}, and easy on the tap.</p>`
           : '<p class="pct">A deep thread: strong, but stiff to tap. Go gently and back off often.</p>';
-    const tagClass = c.near ? ' near' : exact || pctGood ? ' good' : '';
+    const tagClass = c.near ? ' near' : exact || pctGood || roomy ? ' good' : '';
     return `<li class="hole r-${h.role}${c.near ? ' near' : ''}" data-key="${h.key}" data-bit="${b.id}">
       <div class="pic">${glyph(b)}</div>
       <div class="body">${head}
         <p class="big">${link(b)}<span class="tag${tagClass}">${esc(tag)}</span></p>
-        <p class="sizes">${esc(bitSizes(b))}. ${usualLine}</p>
+        <p class="sizes">${forstnerWord(b)}${esc(bitSizes(b))}. ${usualLine}</p>
         ${pctLine}${extra}</div></li>`;
   }
   // Nothing you own will do: say what to get, and what's wrong with the nearest on each side.
@@ -264,10 +268,13 @@ function card(h, r, owned, scale) {
     <div class="pic">${glyph(want, true)}</div>
     <div class="body">${head}
       <p class="big want">${want ? `<button type="button" class="bit-link" data-bit="${want.id}">${bitHTML(want)}</button>` : esc(sizeText(h.ideal, metric))}<span class="tag none">not in your bits</span></p>
-      <p class="sizes">${want ? `${esc(bitSizes(want))}. ` : ''}${near ? 'Nearest you have:' : 'Nothing you have comes close.'}</p>
+      <p class="sizes">${want ? `${forstnerWord(want)}${esc(bitSizes(want))}. ` : ''}${near ? 'Nearest you have:' : 'Nothing you have comes close.'}</p>
       ${near ? `<ul class="nearest">${near}</ul>` : ''}
       ${extra}</div></li>`;
 }
+
+// A Forstner bit's name looks like a twist bit's (3/4″), so its card says which it is.
+const forstnerWord = b => (b.kind === 'forstner' ? 'Forstner, ' : '');
 
 // A bit's size in the units its name doesn't already give: 0.126″ for 3.2 mm, 0.201″ · 5.11 mm for #7.
 function otherSizes(b) {

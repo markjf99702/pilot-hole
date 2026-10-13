@@ -1,6 +1,6 @@
 // The holes a fastener needs in a material, the bit you own that suits each, and the other way round:
 // everything one bit is right for. Every size is in millimetres. No page code, so the tests run it in Node.
-import { MM, inToMm, fracText, mmText, offWords, SAME_MM } from './units.js';
+import { MM, inToMm, fracText, mmText, offWords, offText, SAME_MM } from './units.js';
 import { BITS, bitById, bySize } from './drills.js';
 import { threadById, tapDrillMm, threadPct, TAP_RANGE, goodTap, fullName } from './threads.js';
 import * as FS from './fasteners.js';
@@ -352,8 +352,10 @@ function nutHole(t, nut) {
   const deep = nut.thickMm + nut.washer.thickMm;
   const deepText = inch ? `${fracText(Math.ceil(deep / MM * 32 - 1e-6) / 32)}″` : mmShort(Math.ceil(deep * 2 - 1e-6) / 2);
   const washer = inch ? `${fracText(nut.washer.odMm / MM)}″` : mmShort(nut.washer.odMm);
+  // Any bit from a little over the washer up to a good deal bigger will do, so a bit is judged by the room it
+  // leaves around the washer ("0.94 mm to spare"), not by how far it is from a size in the middle.
   return hole({ key: 'nut', role: 'head', name: 'Counterbore for the nut', where: 'optional, on the back', noIndex: true,
-    ideal, min, max, usual: usual?.id, forstner: true,
+    ideal, min, max, usual: usual?.id, forstner: true, spare: clear,
     depth: `At least ${deepText}, for the nut and its washer; deeper if the end of the bolt has to hide too.`,
     note: `Wide enough for the ${washer} flat washer under the nut. A Forstner bit leaves the flat bottom it sits on. Only if the nut has to sit below the surface.` });
 }
@@ -449,7 +451,10 @@ export function missWords(h, x, side, metric) {
     return `${Math.round(x.pct)}% thread: ${side === 'below' ? 'too tight, the tap may snap' : 'too loose to hold'}`;
   }
   if (h.role === 'clear' && side === 'below' && x.bit.mm <= (h.screwMm ?? h.min)) return 'won’t clear the screw';
-  if (h.key === 'nut' && side === 'below') return `${off}: the washer won’t go in`;
+  if (h.key === 'nut' && side === 'below') {
+    const gap = x.bit.mm - h.spare;
+    return gap <= 0 ? `${offText(-gap, metric)} narrower than the washer: it won’t go in` : `only ${offText(gap, metric)} wider than the washer: too tight to get it in`;
+  }
   if (h.key === 'cbore' && side === 'below') return `${off}: the head won’t go in`;
   if (h.key === 'close' && side === 'above') return `${off}: a free fit, not a close one`;
   return `${off}: ${side === 'below' ? 'too tight' : 'too loose'}`;

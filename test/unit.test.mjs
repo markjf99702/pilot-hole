@@ -352,7 +352,8 @@ test('a nut counterbore takes the nut’s corners and the washer under it', () =
   const { h, c } = pick({ type: 'machine', size: '1/4-20', material: 'hardwood', head: 'hex' }, owning('frac29'), 'nut');
   assert.equal(c.ok, false);
   assert.equal(c.below.bit.id, 'f:1/2');
-  assert.equal(missWords(h, c.below, 'below', false), '0.1875″ small: the washer won’t go in');
+  assert.equal(missWords(h, c.below, 'below', false), '0.125″ narrower than the washer: it won’t go in');
+  assert.equal(h.spare, FS.nutFor(q).washer.odMm, 'a bit for it is judged by the room it leaves around the washer');
   assert.equal(h.usual, 'fo:3/4');
   assert.equal(chooseBit(h, owning('frac29', 'forin'), 'hardwood').bit.id, 'fo:3/4');
   assert.match(h.depth, /^At least 5\/16″, for the nut and its washer/);
