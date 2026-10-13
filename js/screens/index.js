@@ -7,6 +7,7 @@ import { bitInHole } from '../draw.js';
 import { pickHash, finishOf } from './holes.js';
 import { $, $$, esc, bitHTML, bitSizes, offWords, fracify, openSheet, closeSheet, toast, ICON } from '../ui.js';
 
+let arrived = false;    // the wave plays once a visit
 const STD_MAX = 13;      // mm: the biggest bit in an everyday set, which sets the scale for all of them
 const CELL = 33;         // px: the narrowest a slot gets
 
@@ -72,6 +73,12 @@ export function renderIndex(main) {
   const onResize = () => sizeTrays();
   window.addEventListener('resize', onResize);
   draw();
+  // The first time in, the bits rise into their holes in a quick wave.
+  if (!arrived) {
+    arrived = true;
+    root.classList.add('arrive');
+    setTimeout(() => root.classList.remove('arrive'), 1600);
+  }
   return () => { off(); window.removeEventListener('resize', onResize); };
 }
 
@@ -89,18 +96,18 @@ function caseHTML(s) {
       <button type="button" class="lid-x" data-drop="${s.id}" aria-label="I don’t have the ${esc(s.name.toLowerCase())} set">${ICON.x}</button>
     </header>
     <div class="tray" data-row="${s.row}" data-row-wide="${s.rowWide || s.row}" data-cell="${cell}" style="--cell:${cell}px">
-      ${s.bits.map(id => slotHTML(bitById(id), s, scale, cell, maxMm)).join('')}
+      ${s.bits.map((id, i) => slotHTML(bitById(id), s, scale, cell, maxMm, i)).join('')}
     </div>
   </article>`;
 }
 
-function slotHTML(b, s, scale, cell, maxMm) {
+function slotHTML(b, s, scale, cell, maxMm, i = 0) {
   const missing = store.isMissing(s.id, b.id);
   const forstner = b.kind === 'forstner';
   const h = forstner && s.forstner ? cell : 84; // a Forstner bit among twist bits sits on their baseline
   const rise = 24 + 42 * Math.pow(Math.min(1, b.mm / maxMm), 0.75);
   const svg = bitInHole({ w: cell, h, d: b.mm * scale, rise, finish: finishOf(b), missing, forstner });
-  return `<button type="button" class="slot${missing ? ' gone' : ''}" data-bit="${b.id}" data-set="${s.id}" aria-label="${esc(b.name)}, ${esc(bitSizes(b))}${missing ? ', missing' : ''}">
+  return `<button type="button" class="slot${missing ? ' gone' : ''}" data-bit="${b.id}" data-set="${s.id}" style="--i:${Math.min(i, 40)}" aria-label="${esc(b.name)}, ${esc(bitSizes(b))}${missing ? ', missing' : ''}">
     ${svg}<span class="stamp">${stampHTML(b)}</span></button>`;
 }
 

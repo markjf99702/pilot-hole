@@ -398,6 +398,8 @@ main { max-width: 1160px; margin: 0 auto; padding: 16px 16px 40px; outline: none
 .slot .bit { transition: transform .18s ease; }
 .slot:hover .bit { transform: translateY(-3px); }
 .slot.on .bit { transform: translateY(-9px); filter: drop-shadow(0 6px 4px rgba(0, 0, 0, .45)); }
+.arrive .slot .bit { animation: rise-in .5s cubic-bezier(.2, .8, .3, 1.15) both; animation-delay: calc(var(--i, 0) * 18ms); }
+@keyframes rise-in { from { transform: translateY(10px); opacity: 0; } }
 .stamp {
   margin-top: -2px; padding: 2px 3px 3px; border-radius: 3px; white-space: nowrap;
   font: 750 11.5px/1 var(--sans); font-stretch: 75%; letter-spacing: .02em; text-shadow: 0 -1px 0 rgba(0, 0, 0, .55);
@@ -593,6 +595,6 @@ body.gauge-on > .jd-foot { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .sheet[open], .gauge-name { animation: none; }
+  .sheet[open], .gauge-name, .arrive .slot .bit { animation: none; }
   .slot .bit { transition: none; }
 }
