@@ -116,6 +116,7 @@ try {
   await page.click('[data-mat="printed"]');
   assert.ok(await card(page, 'straight').count());
   await page.click('.related .link-btn');
+  await page.waitForFunction(() => scrollY === 0); // it scrolls up to the new pick smoothly
   assert.equal(await text(page, '.spec'), 'M3 heat-set insert into printed part');
   assert.equal(await text(page, '.hole[data-key="insert"] .big .bit-link'), '4 mm');
   assert.match(await text(page, '.hole[data-key="insert"] .depth'), /At least 6\.7 mm deep/);

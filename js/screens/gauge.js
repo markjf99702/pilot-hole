@@ -53,7 +53,7 @@ export function renderGauge(main, { calibrate = false } = {}) {
     W = field.clientWidth; H = field.clientHeight;
     svg.setAttribute('width', W); svg.setAttribute('height', H); svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
   }
-  const corner = () => (st.step === 'cal' ? { x0: 14, y0: st.calEdge === 'long' ? 14 : 64 } : { x0: Math.round(14 + 7 * st.k), y0: Math.round(12 + 12 * st.k) });
+  const corner = () => (st.step === 'cal' ? { x0: 14, y0: st.calEdge === 'long' ? 14 : 64 } : { x0: Math.round(14 + 7 * st.k), y0: Math.round(34 + 5 * st.k) });
 
   function drawSteps() {
     const at = STEPS.findIndex(s => s[0] === st.step);
@@ -75,6 +75,7 @@ export function renderGauge(main, { calibrate = false } = {}) {
   function drawCal() {
     drawCalPanel();
     size();
+    if (st.calEdge === 'long' && !st.edgeChosen && 14 + CARD.long * st.k + 30 > H) { st.calEdge = 'short'; drawCalPanel(); size(); }
     const { x0, y0 } = corner();
     const k = st.k, cw = CARD.short * k, ch = CARD.long * k, r = CARD.corner * k;
     let s = `<rect x="${x0}" y="${y0}" width="${n(cw)}" height="${n(ch)}" rx="${n(r)}" class="card-ghost"/>`;
@@ -89,7 +90,7 @@ export function renderGauge(main, { calibrate = false } = {}) {
       const x = x0 + cw;
       s += `<path d="M${n(x)} 0V${H}" class="jaw"/>`;
       s += grip(x, H - 34, 'h');
-      s += `<text x="${n(x + 10)}" y="${y0 - 26}" class="g-lbl">the card’s right edge</text>`;
+      s += `<text x="${n(x - 10)}" y="${y0 - 26}" text-anchor="end" class="g-lbl">the card’s right edge</text>`;
     }
     svg.innerHTML = s;
   }
@@ -128,9 +129,9 @@ export function renderGauge(main, { calibrate = false } = {}) {
       if (mm % 10 === 0) lbl += `<text x="${x0 - 15}" y="${y + 4}" text-anchor="end" class="g-num">${mm}</text>`;
     }
     for (let mm = 1; x0 + mm * k < W; mm++) {
-      const x = n(x0 + mm * k), len = mm % 10 === 0 ? 12 : mm % 5 === 0 ? 8 : 4.5;
+      const x = n(x0 + mm * k), len = mm % 10 === 0 ? 10 : mm % 5 === 0 ? 7 : 4;
       t += `M${x} ${y0 - len}V${y0}`;
-      if (mm % 10 === 0) lbl += `<text x="${x}" y="${y0 - 16}" text-anchor="middle" class="g-num">${mm}</text>`;
+      if (mm % 10 === 0) lbl += `<text x="${x}" y="${y0 - 13}" text-anchor="middle" class="g-num">${mm}</text>`;
     }
     s += `<path d="${t}" class="tick"/>${lbl}`;
     s += `<rect x="${x0}" y="${y0}" width="${n(st.dia * k)}" height="${st.what === 'bit' ? H - y0 : n(st.len * k)}" class="g-box"/>`;
@@ -141,7 +142,7 @@ export function renderGauge(main, { calibrate = false } = {}) {
       s += grip(W - 30, yl, 'v');
     }
     // How to lay it, up in the space where the head goes.
-    s += `<text x="${x0 + 6}" y="${Math.max(16, y0 - 46)}" class="g-tell">Head above this line,</text><text x="${x0 + 6}" y="${Math.max(31, y0 - 31)}" class="g-tell">side against the left one.</text>`;
+    s += `<text x="${x0 + 6}" y="15" class="g-tell">Head above this line, side against the left one,</text><text x="${x0 + 6}" y="30" class="g-tell">then slide the red jaws until they touch.</text>`;
     svg.innerHTML = s;
   }
 
@@ -168,7 +169,6 @@ export function renderGauge(main, { calibrate = false } = {}) {
         <span class="g-read"><b>${mmText(st.dia, 2)}</b> mm <small>${decIn(st.dia / MM, 3)}″</small></span>
         <button type="button" class="g-nudge" data-d="0.05" aria-label="Wider">${ICON.plus}</button>
       </div>
-      <p class="g-could">${could}</p>
       ${st.what === 'screw' ? `<div class="g-row g-meas">
         <span class="g-what">Length <small>${st.tip === 'pointed' ? 'under the head' : 'under the head (flat heads: all of it)'}</small></span>
         <button type="button" class="g-nudge" data-l="-0.5" aria-label="Shorter">${ICON.minus}</button>
@@ -176,7 +176,7 @@ export function renderGauge(main, { calibrate = false } = {}) {
         <button type="button" class="g-nudge" data-l="0.5" aria-label="Longer">${ICON.plus}</button>
       </div>` : ''}
       <div class="g-row g-end">
-        <p class="g-small">Slide the red jaws until they touch.</p>
+        <p class="g-could">${could}</p>
         <button type="button" class="btn primary g-next" data-go="${st.what === 'bit' || st.tip === 'pointed' ? 'name' : 'threads'}">${st.what === 'bit' || st.tip === 'pointed' ? 'Name it' : 'Threads'} ${ICON.arrow}</button>
       </div>`;
   }
