@@ -147,8 +147,9 @@ try {
   await page.waitForSelector('.sheet[open] .uses');
   const uses = await text(page, '.sheet[open]');
   assert.match(uses, /7\/64″/);
+  assert.match(uses, /#6 and #7 wood screws in hardwood, plywood, MDF exact · the usual/);
   assert.match(uses, /#8 wood screw, old-style in hardwood, plywood, MDF exact · the usual/);
-  assert.match(uses, /#4 wood screw shank hole exact · the usual/);
+  assert.match(uses, /#3 and #4 wood screws shank hole exact · the usual/);
   assert.match(uses, /#6-32 71% thread/);
   assert.match(uses, /Near enough the same as #35/);
 

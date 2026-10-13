@@ -167,7 +167,7 @@ export function bitSheet(bitId, setId, onClose) {
           : `<p class="not-mine">Not in your bits. <button type="button" class="link-btn" data-loose>Add it as a loose bit</button></p>`}
     </div>
     <h3 class="uses-title">${groups.length ? 'Right for' : 'Nothing in the tables calls for this size.'}</h3>
-    ${groups.map(g => `<section class="uses"><h4>${esc(g.name)}</h4><ul>${g.uses.map(useRow).join('')}</ul></section>`).join('')}
+    ${groups.map(g => `<section class="uses"><h4>${esc(g.name)}</h4><ul>${mergeRuns(g.uses).map(useRow).join('')}</ul></section>`).join('')}
   `, onClose);
   body.addEventListener('click', e => {
     if (e.target.closest('.close')) closeSheet();
@@ -185,12 +185,31 @@ export function bitSheet(bitId, setId, onClose) {
 function twinText(twins, b) {
   const same = twins.filter(t => Math.abs(t.mm - b.mm) < 0.006);
   const near = twins.filter(t => !same.includes(t));
-  const list = xs => xs.map(t => `<b>${esc(t.name)}</b>${same.includes(t) ? '' : ` (${esc(offWords(t.mm - b.mm, b.metric))})`}`).join(' and ');
+  // A Forstner bit's twin can share its name: "the 3/8″ twist drill".
+  const nm = t => (t.name === b.name ? `the ${esc(t.name)} twist drill` : `<b>${esc(t.name)}</b>`);
+  const list = xs => xs.map(t => `${nm(t)}${same.includes(t) ? '' : ` (${esc(offWords(t.mm - b.mm, b.metric))})`}`).join(' and ');
   return [same.length ? `The same size as ${list(same)}.` : '', near.length ? `${same.length ? 'Near enough' : 'Near enough the same as'} ${list(near)}${same.length ? ' too' : ''}.` : ''].join(' ');
 }
 
 function kindName(b) {
   return b.kind === 'forstner' ? 'Forstner bit' : `${{ frac: 'fractional', num: 'number', letter: 'letter', metric: 'metric' }[b.kind]} drill`;
+}
+
+// Runs of gauges with the same hole and the same fit become one row: "#2 to #10 wood screws".
+function mergeRuns(uses) {
+  const out = [];
+  for (const u of uses) {
+    const m = u.who.match(/^#(\d+) (wood screw|sheet-metal screw)(, old-style)?$/);
+    const prev = out[out.length - 1];
+    const key = m && `${m[2]}|${m[3] || ''}|${u.hole.key}|${u.mats.join()}|${Math.round(u.diff * 1000)}|${u.usual}`;
+    if (m && prev?.runKey === key) {
+      prev.count++;
+      prev.who = `#${prev.first} ${prev.count === 2 ? 'and' : 'to'} #${m[1]} ${m[2]}s${m[3] || ''}`;
+      continue;
+    }
+    out.push(m ? { ...u, runKey: key, first: m[1], count: 1 } : u);
+  }
+  return out;
 }
 
 // What a hole is, when its group doesn't already say: "shank hole", "close fit", "straight into a print".
