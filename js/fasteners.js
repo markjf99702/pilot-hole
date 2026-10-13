@@ -35,10 +35,11 @@ export const WOOD_SCREWS = [
   { g: 14, shank: '1/4', hard: '5/32', soft: '9/64', bore: '1/2', head: 0.491, prod: { hard: '3/16', soft: '5/32', bore: '1/2' } },
 ].map(w => ({ ...w, d: 0.060 + 0.013 * w.g, tpi: WOOD_TPI[w.g] }));
 
-// Drivers for wood screws: Phillips and square (Robertson) by gauge, and the Torx sizes most modern screws use.
+// Drivers for wood screws: Phillips and square (Robertson) by gauge, with Robertson's colours (#00 orange for
+// #1 and #2 screws), and the Torx sizes most modern screws use.
 export function woodDrivers(g) {
   const ph = g <= 4 ? 1 : g <= 10 ? 2 : 3;
-  const sq = g <= 4 ? [0, 'yellow'] : g <= 7 ? [1, 'green'] : g <= 10 ? [2, 'red'] : [3, 'black'];
+  const sq = g <= 2 ? ['00', 'orange'] : g <= 4 ? [0, 'yellow'] : g <= 7 ? [1, 'green'] : g <= 10 ? [2, 'red'] : [3, 'black'];
   const torx = { 4: 10, 5: 10, 6: 15, 7: 15, 8: 20, 9: 20, 10: 25, 12: 30, 14: 30 }[g];
   return { phillips: ph, square: sq[0], squareColour: sq[1], torx };
 }

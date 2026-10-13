@@ -222,6 +222,9 @@ test('wood screws: pilot, shank, countersink and plug', () => {
   close(h.cone.dia, inch(0.332));
   assert.equal(pick({ type: 'wood', size: '8', material: 'hardwood' }, frac, 'plug').c.bit.id, 'f:3/8');
   assert.deepEqual(r.tools.map(t => `${t.what} ${t.text}`), ['Phillips #2', 'Square #2 (red)', 'Torx T20, on many modern screws']);
+  // Robertson's sizes by gauge: #00 orange for a #2, #0 yellow for #3 and #4, then green, red and black.
+  const square = g => holesFor({ type: 'wood', size: String(g), material: 'hardwood' }).tools.find(t => t.what === 'Square').text;
+  assert.deepEqual([2, 3, 4, 5, 7, 8, 10, 12, 14].map(square), ['#00 (orange)', '#0 (yellow)', '#0 (yellow)', '#1 (green)', '#1 (green)', '#2 (red)', '#2 (red)', '#3 (black)', '#3 (black)']);
   // In metal it says so, and only offers the clearance through a bracket.
   r = holesFor({ type: 'wood', size: '8', material: 'steel' });
   assert.match(r.warn, /don’t hold in metal/);
