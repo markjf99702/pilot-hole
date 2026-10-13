@@ -407,7 +407,7 @@ export function section(r) {
       b += `<circle cx="${n(sx)}" cy="${n(cy - 22.5 * s)}" r="4.5" class="hole-cut r-clear"/><circle cx="${n(sx)}" cy="${n(cy + 22.5 * s)}" r="4.5" class="hole-cut r-clear"/>`;
       b += `<path d="M${ex} ${cy}H${n(cx)}" class="dimline"/><text x="${n((ex + cx) / 2 + 2)}" y="${cy - 7}" text-anchor="middle" class="dim on-wood">22.5</text>`;
       b += `<path d="M${n(sx + 30)} ${n(cy - 22.5 * s)}V${n(cy + 22.5 * s)}M${n(sx + 6)} ${n(cy - 22.5 * s)}h28M${n(sx + 6)} ${n(cy + 22.5 * s)}h28" class="dimline"/><text x="${n(sx + 36)}" y="${cy + 4}" class="dim on-wood">45</text>`;
-      b += `<path d="M${n(cx)} ${n(cy + rr + 2)}v14M${n(sx)} ${n(cy + 22.5 * s + 6)}V${n(cy + rr + 16)}M${n(cx)} ${n(cy + rr + 12)}H${n(sx)}" class="dimline"/><text x="${n(sx + 6)}" y="${n(cy + rr + 16)}" class="dim on-wood">9.5</text>`;
+      b += `<path d="M${n(cx)} ${n(cy + rr + 2)}v14M${n(sx)} ${n(cy + 22.5 * s + 6)}V${n(cy + rr + 16)}M${n(cx)} ${n(cy + rr + 12)}H${n(sx)}" class="dimline"/><text x="${n((cx + sx) / 2 - 2)}" y="${n(cy + rr + 28)}" text-anchor="middle" class="dim on-wood">9.5</text>`;
       b += `<path d="M${ex} 6v172" class="door-edge"/><text x="${ex + 6}" y="186" class="dim">door edge</text>`;
       return svg(192, b, 'The back of a door: a 35 mm cup 22.5 mm in from the edge, and screw holes 45 mm apart');
     }
