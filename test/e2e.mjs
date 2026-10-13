@@ -413,6 +413,8 @@ try {
   await page.click('[data-tip="pointed"]');
   await page.click('[data-go="name"]');
   assert.match(await text(page, '.gauge-name'), /^#\d+ × 1 wood screw$/);
+  // The kind chips draw their icons as lines in the chip's colour, as the picker does, not as black shapes.
+  assert.equal(await page.$eval('.g-kinds [data-kind="sheet"] .ticon path', p => getComputedStyle(p).fill), 'none', 'a kind chip’s icon is a solid shape');
   await page.click('[data-kind="sheet"]');
   assert.match(await text(page, '.gauge-name'), /sheet-metal screw$/);
   // The commonest screw in the drawer, a #8 × 1-1/4″ flat head, measured the way the gauge says: a flat head goes
