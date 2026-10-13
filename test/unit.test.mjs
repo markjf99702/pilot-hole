@@ -28,7 +28,7 @@ test('fractions, decimals and millimetres read the way a drill chart prints them
   assert.equal(U.fracText(1.5), '1-1/2');
   assert.equal(U.fracText(1), '1');
   assert.equal(U.fracText(0.2031, 64), '13/64');
-  assert.equal(U.fracHTML(1.5), '1<span class="sp"> </span><span class="fr">1/2</span>');
+  assert.equal(U.fracHTML(1.5), '1<span class="sp">-</span><span class="fr">1/2</span>');
   assert.equal(U.decIn(0.109375), '0.1094');
   assert.equal(U.decIn(0.201), '0.201');
   assert.equal(U.decIn(0.25), '0.25');
@@ -216,7 +216,7 @@ test('wood screws: pilot, shank, countersink and plug', () => {
   assert.equal(h.cone.angle, 82);
   close(h.cone.dia, inch(0.332));
   assert.equal(pick({ type: 'wood', size: '8', material: 'hardwood' }, frac, 'plug').c.bit.id, 'f:3/8');
-  assert.match(r.tools[0].text, /Phillips #2 · square #2 \(red\)/);
+  assert.deepEqual(r.tools.map(t => `${t.what} ${t.text}`), ['Phillips #2', 'Square #2 (red)', 'Torx T20, on many modern screws']);
   // In metal it says so, and only offers the clearance through a bracket.
   r = holesFor({ type: 'wood', size: '8', material: 'steel' });
   assert.match(r.warn, /don’t hold in metal/);

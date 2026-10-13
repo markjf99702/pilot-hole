@@ -62,7 +62,8 @@ const BUILD = {
     const name = `#${w.g} wood screw`;
     const mat = p.material, group = FS.materialById(mat).group;
     const drivers = FS.woodDrivers(w.g);
-    const tools = [{ what: 'Driver', text: `Phillips #${drivers.phillips} · square #${drivers.square} (${drivers.squareColour})${drivers.torx ? ` · Torx T${drivers.torx} on many modern screws` : ''}` }];
+    const tools = [{ what: 'Phillips', text: `#${drivers.phillips}` }, { what: 'Square', text: `#${drivers.square} (${drivers.squareColour})` }];
+    if (drivers.torx) tools.push({ what: 'Torx', text: `T${drivers.torx}, on many modern screws` });
     const holes = [];
     const major = w.d * MM;
     const clearAll = ceil64(major + 0.01);

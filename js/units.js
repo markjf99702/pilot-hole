@@ -25,13 +25,14 @@ export function fracText(inches, den = 64) {
   return whole ? `${whole}-${num}/${d}` : `${num}/${d}`;
 }
 
-// The same, with the fraction set as a real one: 1<span class="fr">1/2</span>. The font's
-// fraction feature only touches the span, so a whole number in front stays full size.
+// The same as markup: 1<span class="sp">-</span><span class="fr">1/2</span>. Big type sets the fraction as a real
+// one and hides the dash (1½); running text leaves it as 1-1/2. The font's fraction feature only touches the
+// span, so a whole number in front stays full size.
 export function fracHTML(inches, den = 64) {
   const { whole, num, den: d } = toFrac(inches, den);
   if (!num) return String(whole);
   const fr = `<span class="fr">${num}/${d}</span>`;
-  return whole ? `${whole}<span class="sp"> </span>${fr}` : fr;
+  return whole ? `${whole}<span class="sp">-</span>${fr}` : fr;
 }
 
 // Decimal inches the way drill charts print them: 0.1094, 0.201, 0.25.
