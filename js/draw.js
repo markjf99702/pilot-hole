@@ -128,8 +128,9 @@ export function swatch(id) {
 // The holes are coloured by role, the same as the cards: main (red), clear (blue), head (green).
 const W = 330;
 const fillFor = m => `m-${m}`;
-function block(x, y, w, h, mat) {
-  const pat = { hardwood: 'grain', softwood: 'grain', plywood: 'ply', mdf: 'mdf', printed: 'layers', steel: 'metal', aluminium: 'metal' }[mat];
+function block(x, y, w, h, mat, face = false) {
+  let pat = { hardwood: 'grain', softwood: 'grain', plywood: 'ply', mdf: 'mdf', printed: 'layers', steel: 'metal', aluminium: 'metal' }[mat];
+  if (face && pat === 'ply') pat = 'grain';
   return `<rect x="${n(x)}" y="${n(y)}" width="${n(w)}" height="${n(h)}" class="blk ${fillFor(mat)}"/>`
     + (pat && pat !== 'ply' ? `<rect x="${n(x)}" y="${n(y)}" width="${n(w)}" height="${n(h)}" fill="url(#p-${pat})"/>` : '')
     + (pat === 'ply' ? `<rect x="${n(x)}" y="${n(y)}" width="${n(w)}" height="${n(h)}" fill="url(#p-ply)"/>` : '')
@@ -158,8 +159,9 @@ export function section(r) {
     case 'wood': case 'lag': case 'sheet': {
       const lag = r.diagram === 'lag', sheet = r.diagram === 'sheet';
       const metal = ['steel', 'aluminium'].includes(m);
-      const topH = sheet && metal ? 9 : 36, topY = 22;
-      const botY = topY + topH, botH = sheet && metal ? 9 : 70;
+      const thin = sheet && metal;
+      const topH = thin ? 20 : 36, topY = thin ? 34 : 22;
+      const botY = topY + topH, botH = thin ? 20 : 70;
       const pilotW = 10, shankW = lag ? 17 : 15, headW = lag ? 34 : 36;
       let b = '';
       const topMat = sheet && metal ? m : (['steel', 'aluminium'].includes(m) ? m : m);
@@ -173,11 +175,14 @@ export function section(r) {
       if (cs) b += holePath(`M${X - headW / 2} ${topY}L${X - shankW / 2} ${topY + csDepth}H${X + shankW / 2}L${X + headW / 2} ${topY}Z`, 'head');
       if (shank) b += holeRect(X - shankW / 2, topY + csDepth, shankW, topH - csDepth, 'clear');
       if (pilot && !r.warn) {
-        const ph = botH - 16;
-        b += holePath(`M${X - pilotW / 2} ${botY}V${botY + ph}L${X} ${botY + ph + 4}L${X + pilotW / 2} ${botY + ph}V${botY}Z`, 'main');
+        if (thin) b += holeRect(X - pilotW / 2, botY, pilotW, botH, 'main');
+        else {
+          const ph = botH - 16;
+          b += holePath(`M${X - pilotW / 2} ${botY}V${botY + ph}L${X} ${botY + ph + 4}L${X + pilotW / 2} ${botY + ph}V${botY}Z`, 'main');
+        }
       }
       // The screw, ghosted
-      const tipY = r.warn ? botY + 30 : botY + botH - 14;
+      const tipY = r.warn ? botY + 30 : thin ? botY + botH + 26 : botY + botH - 14;
       if (lag) {
         b += ghost(`M${X - 22} ${topY - 2}h44M${X - 13} ${topY - 2}v-12h26v12M${X - 4.5} ${topY - 14}v12M${X + 4.5} ${topY - 14}v12`);
         b += ghost(`M${X - 8} ${topY}V${botY + 8}L${X - 6.5} ${tipY - 8}L${X} ${tipY}L${X + 6.5} ${tipY - 8}L${X + 8} ${botY + 8}V${topY}`);
@@ -193,9 +198,9 @@ export function section(r) {
       b += `<path d="${zz}" class="ghost thin"/>`;
       // Labels on the right
       if (cs) b += label(X + headW / 2 - 2, topY + 3, 'countersink', 'head', L, 236);
-      if (shank) b += label(X + shankW / 2, topY + topH * 0.62, lag ? 'shank hole' : sheet ? 'clearance' : 'shank hole', 'clear', L, 236);
+      if (shank) b += label(X + shankW / 2, topY + topH * 0.55, lag ? 'shank hole' : sheet || r.warn ? 'clearance' : 'shank hole', 'clear', L, 236);
       if (pilot && !r.warn) b += label(X + pilotW / 2, botY + botH * 0.55, lag ? 'lead hole' : 'pilot hole', 'main', L, 236);
-      return svg(r.warn ? topY + topH + 50 : botY + botH + 8, b, `A section through the joint: ${r.holes.map(h => h.name.toLowerCase()).join(', ')}`);
+      return svg(r.warn ? topY + topH + 50 : thin ? tipY + 8 : botY + botH + 8, b, `A section through the joint: ${r.holes.map(h => h.name.toLowerCase()).join(', ')}`);
     }
     case 'tapped': case 'bolt': {
       const bolt = r.diagram === 'bolt';
@@ -276,32 +281,37 @@ export function section(r) {
       return svg(y + h + 30, b, 'A section through a doweled joint, a hole in each piece');
     }
     case 'shelfpin': {
-      // The inside of a cabinet side: a row of holes 32 mm apart, 37 mm in from the front edge.
+      // The inside face of a cabinet side, front edge on the left: two rows of holes, a pin in each at one height,
+      // and the shelf resting on them. On the 32 mm system the rows are 37 mm in and the holes 32 mm apart.
       const metric = r.pick.size === '5';
-      let b = block(40, 12, 160, 150, m);
-      const x = 40 + 46, holes = [32, 64, 96, 128];
-      for (const yy of holes) b += `<circle cx="${x}" cy="${yy + 6}" r="5.5" class="hole-cut r-main"/>`;
-      b += `<circle cx="${x + 92}" cy="${64 + 6}" r="5.5" class="hole-cut r-main"/><circle cx="${x + 92}" cy="${96 + 6}" r="5.5" class="hole-cut r-main"/>`;
-      b += `<path d="M${x - 12} ${96 + 6}h40v6h-40z" class="pin"/><path d="M${x - 14} ${96 + 12}h${140}" class="shelf"/>`;
+      const sc = 1.9, ex = 34, top = 14, wide = 262, tall = 166;
+      let b = block(ex, top, wide, tall, m, true);
+      b += `<path d="M${ex} ${top - 4}v${tall + 8}" class="door-edge"/>`;
+      const fx = ex + 37 * sc, bx = ex + wide - 37 * sc, rows = [top + 22, top + 22 + 32 * sc, top + 22 + 64 * sc];
+      const hr = (metric ? 5 : 6.35) * sc / 2 + 1;
+      for (const y of rows) for (const x of [fx, bx]) b += `<circle cx="${n(x)}" cy="${n(y)}" r="${n(hr)}" class="hole-cut r-main"/>`;
+      const py = rows[1];
+      for (const x of [fx, bx]) b += `<path d="M${n(x - 4)} ${n(py - 3)}h${n(x === fx ? 20 : -12)}v-5h${n(x === fx ? -24 : 16)}z" class="pin"/>`;
+      b += `<path d="M${ex + 4} ${n(py - 9)}H${ex + wide - 4}" class="shelf-line"/><text x="${n((fx + bx) / 2)}" y="${n(py - 14)}" text-anchor="middle" class="dim">shelf</text>`;
       if (metric) {
-        b += `<path d="M40 ${172}h${x - 40}" class="dimline"/><text x="${(40 + x) / 2}" y="${186}" text-anchor="middle" class="dim">37</text>`;
-        b += `<path d="M${x - 22} 38v32" class="dimline"/><text x="${x - 26}" y="58" text-anchor="end" class="dim">32</text>`;
+        b += `<path d="M${ex} ${top + tall + 12}H${n(fx)}" class="dimline"/><text x="${n((ex + fx) / 2)}" y="${top + tall + 26}" text-anchor="middle" class="dim">37</text>`;
+        b += `<path d="M${n(fx - 16)} ${n(rows[1])}V${n(rows[2])}" class="dimline"/><text x="${n(fx - 20)}" y="${n((rows[1] + rows[2]) / 2 + 4)}" text-anchor="end" class="dim">32</text>`;
       }
-      b += `<text x="214" y="30" class="dim">front edge ←</text>`;
-      return svg(192, b.replace('front edge ←', '← front edge').replace('x="214"', 'x="44" text-anchor="start" dy="-8"'), 'The inside of a cabinet side with a row of shelf-pin holes');
+      b += `<text x="${ex + 6}" y="${top + tall + (metric ? 40 : 18)}" class="dim">← front edge</text>`;
+      return svg(top + tall + (metric ? 46 : 24), b, metric ? 'The inside of a cabinet side: rows of 5 mm holes 37 mm in from the edges and 32 mm apart, with a shelf on two pins' : 'The inside of a cabinet side: rows of shelf-pin holes with a shelf on two pins');
     }
     case 'hinge': {
       // The back of a door at its hinge edge: the cup, and the two screw holes beside it.
       const ex = 40, cy = 92, s = 2.6; // 2.6 px per mm
       const cx = ex + 22.5 * s, rr = 17.5 * s;
-      let b = block(ex, 12, 250, 160, m);
+      let b = block(ex, 12, 250, 160, m, true);
       b += `<circle cx="${n(cx)}" cy="${cy}" r="${n(rr)}" class="hole-cut r-main"/>`;
       b += `<circle cx="${n(cx)}" cy="${cy}" r="${n(rr - 9)}" class="cup-floor"/>`;
       const sx = cx + 9.5 * s;
       b += `<circle cx="${n(sx)}" cy="${n(cy - 22.5 * s)}" r="4.5" class="hole-cut r-clear"/><circle cx="${n(sx)}" cy="${n(cy + 22.5 * s)}" r="4.5" class="hole-cut r-clear"/>`;
-      b += `<path d="M${ex} ${cy}H${n(cx)}" class="dimline"/><text x="${n((ex + cx) / 2)}" y="${cy - 6}" text-anchor="middle" class="dim">22.5</text>`;
-      b += `<path d="M${n(sx + 14)} ${n(cy - 22.5 * s)}V${n(cy + 22.5 * s)}" class="dimline"/><text x="${n(sx + 19)}" y="${cy + 4}" class="dim">45</text>`;
-      b += `<path d="M${n(cx)} ${n(cy + rr + 10)}H${n(sx)}" class="dimline"/><text x="${n(cx + 4.75 * s)}" y="${n(cy + rr + 24)}" text-anchor="middle" class="dim">9.5</text>`;
+      b += `<path d="M${ex} ${cy}H${n(cx)}" class="dimline"/><text x="${n((ex + cx) / 2 + 2)}" y="${cy - 7}" text-anchor="middle" class="dim on-wood">22.5</text>`;
+      b += `<path d="M${n(sx + 30)} ${n(cy - 22.5 * s)}V${n(cy + 22.5 * s)}M${n(sx + 6)} ${n(cy - 22.5 * s)}h28M${n(sx + 6)} ${n(cy + 22.5 * s)}h28" class="dimline"/><text x="${n(sx + 36)}" y="${cy + 4}" class="dim on-wood">45</text>`;
+      b += `<path d="M${n(cx)} ${n(cy + rr + 2)}v14M${n(sx)} ${n(cy + 22.5 * s + 6)}V${n(cy + rr + 16)}M${n(cx)} ${n(cy + rr + 12)}H${n(sx)}" class="dimline"/><text x="${n(sx + 6)}" y="${n(cy + rr + 16)}" class="dim on-wood">9.5</text>`;
       b += `<path d="M${ex} 6v172" class="door-edge"/><text x="${ex + 6}" y="186" class="dim">door edge</text>`;
       return svg(192, b, 'The back of a door: a 35 mm cup 22.5 mm in from the edge, and screw holes 45 mm apart');
     }

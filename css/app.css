@@ -258,6 +258,8 @@ main { max-width: 1160px; margin: 0 auto; padding: 16px 16px 40px; outline: none
 .spec .into { color: var(--ink-2); font-weight: 500; }
 .spec .sub { display: block; font: 600 15px/1.3 var(--sans); color: var(--muted); margin-top: 4px; }
 .warn { margin: 0; padding: 10px 12px; border-radius: 12px; background: var(--accent-soft); color: var(--ink); font-weight: 550; }
+.nobits { margin: 0; padding: 10px 12px; border-radius: 12px; background: var(--card); border: 1.5px dashed var(--line-2); color: var(--ink-2); }
+.nobits .link-btn { white-space: nowrap; }
 .warn .link-btn { margin-left: 4px; white-space: nowrap; }
 .diagram {
   margin: 0; padding: 8px 10px 4px; border-radius: 16px; background: var(--card); border: 1px solid var(--line);
@@ -287,7 +289,8 @@ main { max-width: 1160px; margin: 0 auto; padding: 16px 16px 40px; outline: none
 .dimline { stroke: var(--muted); stroke-width: 1; fill: none; }
 .joint { stroke: var(--ink-2); stroke-width: 1.2; stroke-dasharray: 3 3; }
 .pin { fill: #cdd2d7; stroke: var(--ink-2); stroke-width: 1.2; }
-.shelf { stroke: var(--m-softwood); stroke-width: 9; }
+.shelf-line { stroke: var(--ink); stroke-width: 2; stroke-dasharray: 6 4; fill: none; }
+.dim.on-wood { fill: var(--ink); paint-order: stroke; stroke: var(--card); stroke-width: 3px; stroke-linejoin: round; }
 .cup-floor { fill: none; stroke: var(--accent); stroke-width: 1; stroke-dasharray: 2 2.5; }
 .door-edge { stroke: var(--ink); stroke-width: 2.5; }
 
@@ -401,6 +404,7 @@ main { max-width: 1160px; margin: 0 auto; padding: 16px 16px 40px; outline: none
 .set-list { list-style: none; margin: 12px 0; padding: 0; display: grid; gap: 8px; }
 @media (min-width: 900px) { .set-list { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .set-list li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 10px 10px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
+.set-list .btn { flex: none; white-space: nowrap; }
 .set-name { min-width: 0; }
 .set-name b { display: block; font: 750 16.5px/1.2 var(--sans); font-stretch: 87.5%; }
 .set-name small { display: block; color: var(--muted); font-size: 14px; }
@@ -439,12 +443,13 @@ main { max-width: 1160px; margin: 0 auto; padding: 16px 16px 40px; outline: none
 .field { display: grid; gap: 5px; margin: 0 0 12px; }
 .field .label { font-weight: 650; font-size: 14.5px; color: var(--ink-2); }
 .field select, .field input[type=text] { width: 100%; min-height: 46px; padding: 0 12px; border: 1.5px solid var(--line-2); border-radius: 11px; background: var(--bg); font: 600 16px var(--sans); }
-.loose-pick { display: grid; grid-template-columns: 1fr 2fr; gap: 10px; margin-top: 12px; }
+.loose-pick { display: grid; gap: 0 10px; margin-top: 12px; }
+@media (min-width: 520px) { .loose-pick { grid-template-columns: 1fr 2fr; } }
 
 /* Your bits */
 .set-toggles { list-style: none; margin: 10px 0 4px; padding: 0; display: grid; gap: 2px; }
 .set-toggles li { padding: 8px 0; border-bottom: 1px solid var(--line); }
-.set-toggles .switch span { display: grid; }
+.set-toggles .switch .st { display: grid; }
 .set-toggles .switch b { font: 700 16px/1.25 var(--sans); font-stretch: 87.5%; }
 .set-toggles .switch small { font-weight: 450; color: var(--muted); font-size: 14px; }
 .sub-title { font: 800 13px/1 var(--sans); font-stretch: 87.5%; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 22px 0 4px; }
@@ -456,7 +461,7 @@ main { max-width: 1160px; margin: 0 auto; padding: 16px 16px 40px; outline: none
 .file-btn { cursor: pointer; }
 .about { margin-top: 24px; padding-top: 12px; border-top: 1px dashed var(--line-2); color: var(--ink-2); font-size: 15px; }
 .about p { margin: 0 0 6px; }
-.about .btn.quiet { margin-left: -14px; }
+.about .btn.quiet { margin-left: -20px; }
 .about .jd-foot { padding: 6px 0 0; text-align: left; }
 
 /* ---------- The screw gauge: the whole screen, nothing scrolls ---------- */

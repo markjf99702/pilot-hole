@@ -16,7 +16,7 @@ export function yourBitsSheet() {
       <ul class="set-toggles">${SETS.map(s => {
         const gone = store.missing.filter(m => m.startsWith(s.id + ':')).length;
         return `<li><label class="switch"><input type="checkbox" data-set="${s.id}"${store.sets.includes(s.id) ? ' checked' : ''}>
-          <span><b>${esc(s.name)}</b><small>${fracify(s.range)} · ${s.bits.length} bit${s.bits.length > 1 ? 's' : ''}${gone && store.sets.includes(s.id) ? `, ${gone} missing` : ''}</small></span></label></li>`;
+          <span class="st"><b>${esc(s.name)}</b><small>${fracify(s.range)} · ${s.bits.length} bit${s.bits.length > 1 ? 's' : ''}${gone && store.sets.includes(s.id) ? `, ${gone} missing` : ''}</small></span></label></li>`;
       }).join('')}</ul>
       <h3 class="sub-title">Loose bits</h3>
       <p class="hint">${loose.length ? 'Bits on their own, not in a set.' : 'None yet: a bit bought for one job, or one from the junk drawer.'}</p>

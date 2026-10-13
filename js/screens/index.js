@@ -191,8 +191,9 @@ const QUALIFIER = { lead: 'lead hole', straight: 'straight into a print, no tap'
 
 function useRow(u) {
   const metric = /^M\d|mm/.test(u.who) || u.pick.type === 'heatset' || u.pick.type === 'hinge';
-  const how = u.pct != null ? `${Math.round(u.pct)}% thread` : offWords(u.diff, metric);
-  const good = u.pct != null ? u.pct >= 70 && u.pct <= 80 : Math.abs(u.diff) < 0.006;
+  const tap = u.pct != null && u.hole.key === 'tap';
+  const how = tap ? `${Math.round(u.pct)}% thread` : offWords(u.diff, metric);
+  const good = tap ? u.pct >= 70 && u.pct <= 80 : Math.abs(u.diff) < 0.006;
   const bits = [QUALIFIER[u.hole.key], u.matsMatter ? `in ${matsText(u.mats)}` : ''].filter(Boolean);
   return `<li><a class="use" href="${pickHash({ ...u.pick, material: u.matsMatter ? u.mats[0] : u.pick.material })}">
     <span class="what"><b>${fracify(u.who)}</b>${bits.length ? ` <small>${esc(bits.join(', '))}</small>` : ''}</span>

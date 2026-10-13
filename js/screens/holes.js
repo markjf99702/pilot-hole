@@ -9,6 +9,10 @@ import { bitInHole, coneGlyph, typeIcon, headIcon, swatch, section } from '../dr
 import { $, $$, esc, bitHTML, bitSizes, sizeText, offWords, fracify, toast, ICON } from '../ui.js';
 
 const ALL_BITS = new Set(BITS.map(b => b.id));
+// With no bits ticked, answers come from the bits people buy (fractions, metric by halves, Forstner bits)
+// and the bit the chart calls for, if there is one.
+const BOUGHT = new Set(BITS.filter(b => b.kind === 'frac' || b.kind === 'forstner' || (b.kind === 'metric' && Math.abs(b.mm * 2 - Math.round(b.mm * 2)) < 1e-9)).map(b => b.id));
+const usualBits = h => (h.usual ? new Set([...BOUGHT, h.usual]) : BOUGHT);
 const lastSize = { inch: '1/4-20', metric: 'M3' };
 
 // The address for a pick, so a reload or a shared link comes back to it.
@@ -85,7 +89,7 @@ export function renderHoles(main, fromHash) {
           <button type="button" role="radio" data-sys="inch" aria-checked="${t.system === 'inch'}">Inch</button>
           <button type="button" role="radio" data-sys="metric" aria-checked="${t.system === 'metric'}">Metric</button></div>` : ''}
         <div class="chips" data-row="size" role="radiogroup" aria-labelledby="sizeLbl">
-          ${sizes.map(id => `<button type="button" role="radio" class="chip" data-size="${esc(id)}" aria-checked="${id === pick.size}">${sizeLabel(pick.type, id)}</button>`).join('')}
+          ${sizes.map(id => `<button type="button" role="radio" class="chip" data-size="${esc(id)}" aria-checked="${id === pick.size}"><span>${sizeLabel(pick.type, id)}</span></button>`).join('')}
         </div>
       </div>
       ${heads.length ? `<div class="pick-row">
@@ -140,6 +144,7 @@ export function renderHoles(main, fromHash) {
     const yours = ownedSummary();
     result.innerHTML = `
       <h1 class="spec"><span class="what">${fracify(r.name)}</span> <span class="into">into ${esc(mat.name.toLowerCase())}</span>${r.sub && pick.type !== 'machine' ? ` <span class="sub">${esc(r.sub)}</span>` : ''}</h1>
+      ${owned.size ? '' : '<p class="nobits">No bits ticked yet, so these are the usual sizes. Tick the sets you have and every answer comes in your own bits. <button type="button" class="link-btn" data-act="bits">Your bits</button></p>'}
       ${r.warn ? `<p class="warn">${esc(r.warn)}${r.switchTo ? ` ${r.switchTo.map(s => `<button type="button" class="link-btn" data-switch='${esc(JSON.stringify(s))}'>${esc(FS.typeById(s.type).name)} →</button>`).join(' ')}` : ''}</p>` : ''}
       <figure class="diagram">${section(r)}</figure>
       <ol class="cards">${r.holes.map(h => card(h, r, owned, scale)).join('')}</ol>
@@ -180,10 +185,11 @@ function ownedSummary() {
 // One hole: the bit you own for it, how close that is, and what else to know.
 function card(h, r, owned, scale) {
   const metric = isMetricWork(r);
-  const c = chooseBit(h, owned, r.pick.material);
+  // With no bits ticked at all, answer from every bit there is, so the cards show the usual sizes.
+  const c = chooseBit(h, owned.size ? owned : usualBits(h), r.pick.material);
   const head = `<div class="hole-head"><h3>${esc(h.name)}</h3><span class="where">${esc(h.where)}</span></div>`;
   const extra = [
-    h.alt.length ? h.alt.map(a => { const b = bitById(a.bit); return `<p class="alt">${esc(a.label)}: <button type="button" class="bit-link" data-bit="${b.id}">${bitHTML(b)}</button>${owned.has(b.id) ? '' : ' <span class="not-yours">not in your bits</span>'}</p>`; }).join('') : '',
+    h.alt.length ? h.alt.map(a => { const b = bitById(a.bit); return `<p class="alt">${esc(a.label)}: <button type="button" class="bit-link" data-bit="${b.id}">${bitHTML(b)}</button>${owned.has(b.id) || !owned.size ? '' : ' <span class="not-yours">not in your bits</span>'}</p>`; }).join('') : '',
     h.depth ? `<p class="depth"><b>Depth</b> ${fracify(h.depth)}</p>` : '',
     h.note ? `<p class="note">${fracify(h.note)}</p>` : '',
   ].join('');
@@ -201,7 +207,7 @@ function card(h, r, owned, scale) {
     const exact = Math.abs(c.diff) < 0.006;
     const tag = c.pct != null && h.key === 'tap' ? `${Math.round(c.pct)}% thread` : offWords(c.diff, metric);
     const usualLine = c.usual
-      ? (c.usual.id === b.id ? 'The usual bit for it.' : `The usual is <button type="button" class="bit-link" data-bit="${c.usual.id}">${bitHTML(c.usual)}</button> (${esc(otherSizes(c.usual))})${owned.has(c.usual.id) ? '' : ', not in your bits'}.`)
+      ? (c.usual.id === b.id ? (owned.size ? 'The usual bit for it.' : 'The usual bit.') : `The usual is <button type="button" class="bit-link" data-bit="${c.usual.id}">${bitHTML(c.usual)}</button> (${esc(otherSizes(c.usual))})${owned.has(c.usual.id) || !owned.size ? '' : ', not in your bits'}.`)
       : `Aim for ${esc(sizeText(h.ideal, metric))}.`;
     const pctGood = h.key === 'tap' && c.pct >= 70 && c.pct <= 80;
     return `<li class="hole r-${h.role}" data-key="${h.key}" data-bit="${b.id}">
