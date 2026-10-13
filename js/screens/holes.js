@@ -210,12 +210,17 @@ function card(h, r, owned, scale) {
       ? (c.usual.id === b.id ? (owned.size ? 'The usual bit for it.' : 'The usual bit.') : `The usual is <button type="button" class="bit-link" data-bit="${c.usual.id}">${bitHTML(c.usual)}</button> (${esc(otherSizes(c.usual))})${owned.has(c.usual.id) || !owned.size ? '' : ', not in your bits'}.`)
       : `Aim for ${esc(sizeText(h.ideal, metric))}.`;
     const pctGood = h.key === 'tap' && c.pct >= 70 && c.pct <= 80;
+    // What a thread that's shallower or deeper than usual means for the job.
+    const metal = r.pick.material === 'steel';
+    const pctLine = h.key !== 'tap' || pctGood ? ''
+      : c.pct < 70 ? `<p class="pct">A shallow thread: ${metal ? 'plenty in steel' : 'it holds, but go easy tightening it'}, and easy on the tap.</p>`
+        : '<p class="pct">A deep thread: strong, but stiff to tap. Go gently and back off often.</p>';
     return `<li class="hole r-${h.role}" data-key="${h.key}" data-bit="${b.id}">
       <div class="pic">${glyph(b)}</div>
       <div class="body">${head}
         <p class="big"><button type="button" class="bit-link" data-bit="${b.id}">${bitHTML(b)}</button><span class="tag${exact || pctGood ? ' good' : ''}">${esc(tag)}</span></p>
         <p class="sizes">${esc(bitSizes(b))}. ${usualLine}</p>
-        ${extra}</div></li>`;
+        ${pctLine}${extra}</div></li>`;
   }
   // Nothing you own will do: say what to get, and what's wrong with the nearest on each side.
   const want = c.usual || chooseBit(h, ALL_BITS, r.pick.material).bit;

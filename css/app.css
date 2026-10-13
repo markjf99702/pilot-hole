@@ -338,7 +338,8 @@ main { max-width: 1160px; margin: 0 auto; padding: 16px 16px 40px; outline: none
 .hole .sizes .bit-link { font-weight: 700; text-decoration-color: var(--line-2); }
 .nearest { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 2px; font-size: 15px; }
 .nearest .bit-link { font-weight: 750; margin-right: 4px; }
-.hole .alt, .hole .depth, .hole .note { margin: 7px 0 0; font-size: 14.5px; color: var(--ink-2); }
+.hole .alt, .hole .depth, .hole .note, .hole .pct { margin: 7px 0 0; font-size: 14.5px; color: var(--ink-2); }
+.hole .pct { font-weight: 600; }
 .hole .alt .bit-link { font-weight: 750; text-decoration-color: var(--line-2); }
 .not-yours { font-size: 13px; color: var(--muted); }
 .hole .depth b { font: 750 12px var(--sans); font-stretch: 87.5%; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); margin-right: 4px; }

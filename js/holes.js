@@ -163,7 +163,7 @@ const BUILD = {
       hole({ key: 'lead', name: 'Lead hole', where: 'for the threads', matsMatter: true,
         ideal: r[1] * l.d, min: r[0] * l.d, max: r[2] * l.d, index: [r[1] * l.d - MM / 64, r[1] * l.d + MM / 64],
         depth: 'As deep as the lag goes, less its point.',
-        note: `${Math.round(r[1] * 100)}% of the shank, the middle of the NDS range for ${mat === 'softwood' || mat === 'plywood' ? 'softwood' : 'dense hardwood'}. Drive it with a wrench, not an impact driver, near the end of a board.` }),
+        note: `${Math.round(r[1] * 100)}% of the shank, the middle of the NDS range for ${mat === 'softwood' || mat === 'plywood' ? 'softwood' : 'dense hardwood'}.` }),
       hole({ key: 'shank', role: 'clear', name: 'Shank hole', where: 'for the plain shank',
         ideal: l.d, min: l.d - 0.1, max: l.d + MM / 32,
         depth: 'As deep as the plain part of the shank is long. Right through the piece being fastened, and through a steel bracket.' }),
@@ -294,7 +294,7 @@ function countersink(diaMm, angle, extra = '') {
   return hole({ key: 'csink', role: 'head', name: 'Countersink', where: `${angle}°`,
     cone: { angle, dia: diaMm }, ideal: diaMm, min: diaMm, max: diaMm, twist: false,
     depth: 'Until the head sits flush, or a hair below.',
-    note: `A ${angle}° countersink, opened up to the width of the head at the surface. ${extra}`.trim() });
+    note: `${angle === 82 ? 'An' : 'A'} ${angle}° countersink, opened up to the width of the head at the surface. ${extra}`.trim() });
 }
 
 // Close and free clearance holes for a thread.

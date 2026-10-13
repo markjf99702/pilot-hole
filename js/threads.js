@@ -79,8 +79,9 @@ export const fullName = t => (t.system === 'inch' ? t.label : `M${t.d} × ${t.p}
 export const pitchText = t => (t.system === 'inch' ? `${t.tpi} threads per inch` : `${t.p} mm pitch`);
 
 // Tap drills by percentage of thread, the shop formula: drill = major − 0.01299 × % × pitch.
-// 75% is the usual aim; 60–85% all hold, less is easier on the tap and more is stronger in soft metal.
+// 75% is the usual aim. From 55% to 85% all hold: less is easier on the tap and plenty in steel,
+// more is stronger in soft metal but tight on the tap.
 export const K = 0.01299;
 export const tapDrillMm = (t, pct = 75) => t.d - K * pct * t.p;
 export const threadPct = (t, drillMm) => (t.d - drillMm) / (K * t.p);
-export const TAP_RANGE = [60, 85];
+export const TAP_RANGE = [55, 85];

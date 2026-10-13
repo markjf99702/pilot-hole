@@ -240,6 +240,10 @@ test('machine screws: tap drill in the bits you own, with the thread it gives', 
   assert.equal(c.usual.id, 'n:7');
   ({ c } = pick({ type: 'machine', size: '1/4-20', material: 'aluminium', head: 'socket' }, owning('frac29', 'num60'), 'tap'));
   assert.equal(c.bit.id, 'n:7');
+  // #8-32 with only fractions: 9/64″ gives a shallow 58% thread, which still holds in steel.
+  ({ c } = pick({ type: 'machine', size: '8-32', material: 'steel', head: 'socket' }, owning('frac29'), 'tap'));
+  assert.equal(c.bit.id, 'f:9/64');
+  close(c.pct, 57.7, 0.2);
   // M3 in a print with only fractional bits: nothing gives a usable thread, and it says which way each misses.
   ({ c } = pick({ type: 'machine', size: 'M3', material: 'printed' }, owning('frac29'), 'tap'));
   assert.equal(c.ok, false);
