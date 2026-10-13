@@ -114,12 +114,11 @@ const BUILD = {
   machine(p) {
     const t = threadById(p.size);
     const hf = FS.headFacts(t, p.head);
-    const head = FS.HEADS[p.head];
-    const headName = t.system === 'metric' && p.head === 'flat' ? 'countersunk' : head.name.toLowerCase();
+    const headName = FS.headWords(t, p.head);
     const name = `${t.label} ${headName}`;
     const mat = p.material, group = FS.materialById(mat).group;
     const holes = [];
-    const tools = machineTools(t, hf);
+    const tools = machineTools(t, hf, { tap: group !== 'wood' }); // through wood it's a nut, not a tapped hole
     const out = { name, title: t.label, sub: headName, diagram: group === 'wood' ? 'bolt' : 'tapped', holes, tools, thread: t };
 
     if (group === 'wood') {
@@ -216,7 +215,8 @@ const BUILD = {
       clearance(t, 'free', { name: `Clearance for the ${t.label} screw`, where: 'in the part that bolts on', key: 'clear', noIndex: true }),
     ];
     return { name, title: name, diagram: 'heatset', holes, thread: t,
-      tools: [{ what: 'Soldering iron', text: 'With an insert tip, set 10–20 °C above your print temperature. Press it in straight and stop flush.' }, ...machineTools(t, FS.headFacts(t, 'socket')).filter(x => x.what !== 'Tap')] };
+      tools: [{ what: 'Soldering iron', text: 'With an insert tip, set 10–⁠20 °C above your print temperature. Press it in straight and stop flush.' },
+        ...machineTools(t, FS.headFacts(t, 'socket'), { tap: false, nut: false }).map(x => (x.what === 'Hex key' ? { ...x, text: `${x.text}, for a socket head screw` } : x))] };
   },
 
   insert(p) {
@@ -350,17 +350,26 @@ function nutHole(t, nut) {
 }
 const FORSTNERS = BITS.filter(b => b.kind === 'forstner').sort((a, b) => a.mm - b.mm);
 
-function machineTools(t, hf) {
+// The keys, drivers and wrenches a screw takes, the wrench for its nut, and the tap for its thread.
+// A hex bolt whose nut takes the same wrench gets one line for both.
+function machineTools(t, hf, { tap = true, nut = true } = {}) {
   const inch = t.system === 'inch';
   const len = x => (inch ? `${fracText(x, 64)}″` : `${String(x)} mm`);
   const tools = [];
   if (hf?.kind === 'socket' || hf?.kind === 'button' || (hf?.kind === 'flat' && hf.keyMm)) tools.push({ what: 'Hex key', text: inch ? (hf.keyIn === 0.05 ? '0.050″' : len(hf.keyIn)) : len(hf.keyMm) });
   if (hf?.kind === 'flat' && hf.phillips != null) tools.push({ what: 'Driver', text: `Phillips #${hf.phillips}` });
   if (hf?.kind === 'pan') tools.push({ what: 'Driver', text: `Phillips #${hf.phillips}` });
-  if (hf?.kind === 'hex') tools.push({ what: 'Wrench', text: inch ? len(hf.wrenchIn) : `${hf.wrenchMm} mm${hf.dinMm ? ` (${hf.dinMm} mm on older DIN bolts)` : ''}` });
-  const nut = FS.nutFor(t);
-  if (nut) tools.push({ what: 'Nut', text: inch ? `${len(nut.wrenchIn)} wrench` : `${nut.wrenchMm} mm wrench${nut.dinMm ? ` (${nut.dinMm} mm on older DIN nuts)` : ''}` });
-  tools.push({ what: 'Tap', text: inch ? `${t.label} ${t.cls}` : `${fullName(t)}${t.cls === 'fine' ? ' (fine)' : ''}` });
+  const n = nut && FS.nutFor(t);
+  const nutSize = n && (inch ? len(n.wrenchIn) : `${n.wrenchMm} mm`);
+  const din = (mm, what) => (mm ? ` (${mm} mm on older DIN ${what})` : '');
+  let nutToo = false;
+  if (hf?.kind === 'hex') {
+    const headSize = inch ? len(hf.wrenchIn) : `${hf.wrenchMm} mm`;
+    nutToo = !!n && nutSize === headSize;
+    tools.push({ what: 'Wrench', text: nutToo ? `${headSize}, for the head and the nut${din(hf.dinMm, 'parts')}` : `${headSize}${din(hf.dinMm, 'bolts')}` });
+  }
+  if (n && !nutToo) tools.push({ what: 'Nut', text: `${nutSize} wrench${din(n.dinMm, 'nuts')}` });
+  if (tap) tools.push({ what: 'Tap', text: inch ? `${t.label} ${t.cls}` : `${fullName(t)}${t.cls === 'fine' ? ' (fine)' : ''}` });
   return tools;
 }
 

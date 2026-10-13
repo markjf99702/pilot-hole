@@ -120,6 +120,14 @@ export function headFacts(t, head) {
 }
 export const headsFor = t => Object.keys(HEADS).filter(h => headFacts(t, h));
 
+// What a screw with this head is called after its thread, the way a hardware store says it:
+// socket head, flat head (countersunk in metric), hex bolt (a hex head screw below 1/4″).
+export function headWords(t, head) {
+  if (head === 'flat' && t.system === 'metric') return 'countersunk';
+  if (head === 'hex') return t.system === 'inch' && t.dIn < 0.25 ? 'hex head screw' : 'hex bolt';
+  return HEADS[head].name.toLowerCase();
+}
+
 // The nut a thread takes, and the flat washer under it. A hex is 2/√3 as wide across its corners as across its flats.
 const CORNERS = 2 / Math.sqrt(3);
 export function nutFor(t) {

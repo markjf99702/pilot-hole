@@ -219,7 +219,7 @@ function card(h, r, owned, scale) {
     const tag = c.pct != null && h.key === 'tap' ? `${Math.round(c.pct)}% thread` : offWords(c.diff, metric);
     const usualLine = c.usual
       ? (c.usual.id === b.id ? (owned.size ? 'The usual bit for it.' : 'The usual bit.') : `The usual is <button type="button" class="bit-link" data-bit="${c.usual.id}">${bitHTML(c.usual)}</button> (${esc(otherSizes(c.usual))})${owned.has(c.usual.id) || !owned.size ? '' : ', not in your bits'}.`)
-      : `Aim for ${esc(sizeText(h.ideal, metric))}.`;
+      : exact ? '' : `Aim for ${esc(sizeText(h.ideal, metric))}.`;
     const pctGood = h.key === 'tap' && c.pct >= 70 && c.pct <= 80;
     // What a thread that's shallower or deeper than usual means for the job.
     const metal = r.pick.material === 'steel';

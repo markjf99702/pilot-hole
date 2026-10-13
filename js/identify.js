@@ -2,7 +2,7 @@
 // the thread combs to try, standard lengths, and the name it ends up with. No page code.
 import { MM, toFrac, fracText, mmText } from './units.js';
 import { THREADS, fullName } from './threads.js';
-import { WOOD_SCREWS, SHEET_SCREWS, LAGS } from './fasteners.js';
+import { WOOD_SCREWS, SHEET_SCREWS, LAGS, headWords } from './fasteners.js';
 import { BITS } from './drills.js';
 
 // ISO/IEC 7810 ID-1: every bank card, ID card and loyalty card is this size.
@@ -101,17 +101,11 @@ export function snapLength(lenMm, metric) {
 // A length the way a hardware store writes it: 1/2, 1-1/2 (text) for inches; 10 for millimetres.
 export const lengthText = len => (len.mm != null ? mmText(len.mm, 1) : fracText(len.in, 16));
 
-const INCH_HEAD = { hex: 'hex bolt', socket: 'socket head', button: 'button head', flat: 'flat head', pan: 'pan head' };
-const MM_HEAD = { ...INCH_HEAD, flat: 'countersunk' };
-
 // The name: '1/4-20 × 1-1/2 hex bolt', 'M3 × 0.5 × 10 socket head', '#8 × 1-1/4 wood screw'.
+// The head's words are the Holes screen's, so the two call a screw the same thing.
 export function screwName({ kind, thread, gauge, len, head }) {
   const L = len ? ` × ${lengthText(len)}` : '';
-  if (kind === 'machine') {
-    const words = head ? ` ${(thread.system === 'metric' ? MM_HEAD : INCH_HEAD)[head]}` : '';
-    const hexWord = head === 'hex' && thread.system === 'inch' && thread.dIn < 0.25 ? ' hex head screw' : words;
-    return `${fullName(thread)}${L}${hexWord}`;
-  }
+  if (kind === 'machine') return `${fullName(thread)}${L}${head ? ` ${headWords(thread, head)}` : ''}`;
   if (kind === 'wood') return `${gauge.label}${L} wood screw`;
   if (kind === 'sheet') return `${gauge.label}${L} sheet-metal screw`;
   if (kind === 'lag') return `${gauge.label}${L} lag screw`;

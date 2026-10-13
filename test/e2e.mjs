@@ -125,6 +125,12 @@ try {
   await page.click('[data-mat="steel"]', { force: true }); // it's marked unavailable, but a tap still explains
   assert.match(await text(page, '#toast'), /Heat-set inserts go into printed parts/);
   assert.equal(await text(page, '.spec'), 'M3 heat-set insert into printed part');
+  assert.doesNotMatch(await text(page, '.tools'), /Nut|Tap/, 'a heat-set insert has no nut and no tap');
+
+  // An exact answer with no chart bit to compare doesn't say the size twice.
+  await page.evaluate(() => { location.hash = '#/?type=lag&size=5%2F16&into=softwood'; });
+  await page.waitForFunction(() => document.querySelector('.spec')?.textContent.includes('lag'));
+  assert.equal(await text(page, '.hole[data-key="shank"] .sizes'), '0.3125″ · 7.94 mm.');
 
   // A reload comes back to the same pick.
   await page.click('[data-type="insert"]');
@@ -235,7 +241,7 @@ try {
   assert.match(await text(page, '.g-tools'), /Wrench 7\/16″/);
   await page.click('.g-result a.btn.primary');
   await page.waitForSelector('.spec');
-  assert.equal(await text(page, '.spec'), '1/4-20 hex head into aluminium');
+  assert.equal(await text(page, '.spec'), '1/4-20 hex bolt into aluminium', 'the Holes screen calls it what the gauge does');
   assert.equal(await page.evaluate(() => document.body.classList.contains('gauge-on')), false, 'leaving the gauge unlocks the page');
   assert.match(await page.getAttribute('meta[name="viewport"]', 'content'), /^width=device-width, initial-scale=1, viewport-fit=cover$/);
 

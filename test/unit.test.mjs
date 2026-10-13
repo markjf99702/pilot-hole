@@ -345,8 +345,19 @@ test('machine screws: heads, keys, counterbores and countersinks', () => {
   const q = holesFor({ type: 'machine', size: '1/4-20', material: 'steel', head: 'socket' });
   assert.equal(q.tools[0].text, '3/16″');
   assert.equal(q.holes.find(h => h.key === 'cbore').usual, 'f:7/16');
+  // A hex bolt whose nut takes the same wrench gets one line for both.
   const hex = holesFor({ type: 'machine', size: 'M10', material: 'steel', head: 'hex' });
-  assert.match(hex.tools[0].text, /^16 mm \(17 mm on older DIN bolts\)$/);
+  assert.deepEqual(hex.tools.map(t => `${t.what} ${t.text}`), ['Wrench 16 mm, for the head and the nut (17 mm on older DIN parts)', 'Tap M10 × 1.5']);
+  assert.equal(hex.name, 'M10 hex bolt');
+  const q20 = holesFor({ type: 'machine', size: '1/4-20', material: 'aluminium', head: 'hex' });
+  assert.equal(q20.name, '1/4-20 hex bolt', 'the gauge calls it a hex bolt too');
+  assert.deepEqual(q20.tools.map(t => `${t.what} ${t.text}`), ['Wrench 7/16″, for the head and the nut', 'Tap 1/4-20 UNC']);
+  const q716 = holesFor({ type: 'machine', size: '7/16-14', material: 'steel', head: 'hex' });
+  assert.deepEqual(q716.tools.map(t => `${t.what} ${t.text}`), ['Wrench 5/8″', 'Nut 11/16″ wrench', 'Tap 7/16-14 UNC'], 'a 7/16″ nut is bigger than the head');
+  // A bolt through wood takes a nut, not a tap; a heat-set insert takes neither.
+  assert.deepEqual(holesFor({ type: 'machine', size: '1/4-20', material: 'hardwood', head: 'hex' }).tools.map(t => t.what), ['Wrench']);
+  assert.deepEqual(holesFor({ type: 'heatset', size: 'M3' }).tools.map(t => `${t.what} ${t.text}`),
+    ['Soldering iron With an insert tip, set 10–⁠20 °C above your print temperature. Press it in straight and stop flush.', 'Hex key 2.5 mm, for a socket head screw']);
   const flat = holesFor({ type: 'machine', size: '10-32', material: 'aluminium', head: 'flat' });
   const cs = flat.holes.find(h => h.key === 'csink');
   assert.equal(cs.cone.angle, 82);
