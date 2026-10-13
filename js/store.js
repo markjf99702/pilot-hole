@@ -70,8 +70,9 @@ export const store = {
     state = { ...clean(d), pick: state.pick };
     changed();
   },
+  // Everything goes: no sets ticked, nothing missing or loose, and the screen calibrated afresh.
   clearAll() {
-    state = fresh();
+    state = { ...fresh(), sets: [] };
     try { localStorage.removeItem(SCREEN); } catch { /* nothing to clear */ }
     changed();
   },

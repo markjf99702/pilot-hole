@@ -610,7 +610,10 @@ test('the store keeps sets, missing and loose bits, and loads only its own files
   assert.deepEqual(store.sets, ['frac29'], 'unknown sets are dropped');
   assert.deepEqual(store.missing, []);
   assert.deepEqual(store.loose, ['f:1/8']);
+  // Clear everything means everything: no sets ticked, not the fractional set a first visit starts with.
   store.clearAll();
-  assert.deepEqual(store.sets, ['frac29']);
+  assert.deepEqual(store.sets, []);
+  assert.equal(store.owned().size, 0);
+  assert.deepEqual(JSON.parse(mem.get('pilot-hole.v1')).sets, [], 'and it stays cleared after a reload');
   delete globalThis.localStorage;
 });

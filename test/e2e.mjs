@@ -286,6 +286,13 @@ try {
   await page.click('.g-close');
   await page.waitForSelector('.spec');
   await fits(page, 'the Holes screen after the gauge');
+
+  // Clear everything clears everything: no sets ticked, not the fractional set a first visit starts with.
+  await page.click('#bitsBtn');
+  await page.click('.sheet [data-act="clear"]');
+  assert.deepEqual(await page.evaluate(() => window.pilotHole.store.sets), []);
+  await page.click('.sheet .close');
+  assert.match(await text(page, '.nobits'), /No bits ticked yet/);
   await phone.ctx.close();
 
   // ---------- A small phone: the card won't fit lengthways, so the gauge measures across it ----------
