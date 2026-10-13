@@ -563,7 +563,12 @@ body.gauge-on .toast { bottom: auto; top: calc(7px + env(safe-area-inset-top)); 
 .g-lbl { font: 700 12.5px var(--sans); font-stretch: 87.5%; fill: #a9321a; }
 .grip circle { fill: #cf3f1c; stroke: #fff; stroke-width: 2.5; filter: drop-shadow(0 2px 3px rgba(0, 0, 0, .35)); }
 .grip path { fill: #fff; }
-.comb { fill: #3a4650; }
+/* A comb is a steel leaf: lit along its teeth, its pitch stamped into it, a pivot hole at the end */
+.comb { fill: url(#g-leaf); stroke: rgba(0, 0, 0, .45); stroke-width: 1; stroke-linejoin: round; }
+.comb-lit { fill: none; stroke: rgba(255, 255, 255, .3); stroke-width: 1; stroke-linejoin: round; }
+.comb-pivot { fill: none; stroke: rgba(0, 0, 0, .5); stroke-width: 1.5; }
+.comb-stamp { font: 800 15px var(--sans); font-stretch: 87.5%; letter-spacing: .05em; fill: rgba(232, 236, 239, .8); }
+.comb-stamp.sh { fill: rgba(0, 0, 0, .55); }
 .comb-mark { stroke: #cf3f1c; stroke-width: 1.6; }
 .comb-ten { font: 750 11px var(--sans); fill: #cf3f1c; }
 .g-tell { font: 600 12px var(--sans); fill: #6b6f75; }

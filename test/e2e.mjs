@@ -313,6 +313,11 @@ try {
   await page.waitForSelector('.comb-btn');
   const combs = await page.locator('.comb-btn b').allInnerTexts();
   assert.ok(combs.includes('1/4-20') && combs.includes('1/4-28') && combs.includes('M6 × 1'), combs.join(', '));
+  // Each comb is a steel leaf with its pitch stamped on it, as on a real thread gauge, and its teeth are true
+  // size: ten of 1/4-20's span 12.7 mm, 76.2 px on a screen of 6 px to the mm.
+  assert.deepEqual(await page.$$eval('#gSvg .comb-stamp:not(.sh)', ts => ts.map(t => t.textContent)), ['20', '28', '1.0']);
+  const crests = await page.$eval('#gSvg .comb-lit', p => p.getAttribute('d').split('L').filter((_, i) => i % 2 === 1).map(c => +c.split(' ')[0]));
+  assert.ok(Math.abs(crests[10] - crests[0] - 12.7 * 6) < 0.05, `ten teeth span ${crests[10] - crests[0]} px`);
   // The steps along the top go back (and on again), and so do the phone's Back and Forward, keeping the measurement.
   await page.click('.g-steps [data-step="measure"]');
   await page.waitForSelector('.gauge[data-step="measure"]');

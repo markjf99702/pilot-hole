@@ -298,7 +298,7 @@ export function renderGauge(main, hash = '') {
 
   // Step 3: the combs, each spanning more than ten threads at true size. Every one is drawn: on this step the
   // glass scrolls, so a short screen (a phone with its browser's bars showing) still reaches them all.
-  const COMB = { top: 46, band: 26, gap: 64 };
+  const COMB = { top: 46, band: 30, gap: 62 };
   const combTop = i => COMB.top + i * (COMB.band + COMB.gap);
   function drawThreads() {
     const combs = combsFor(st.dia, { more: st.more });
@@ -312,13 +312,22 @@ export function renderGauge(main, hash = '') {
     combs.forEach((c, ci) => {
       const y = combTop(ci);
       const p = c.pitch * k, depth = Math.max(3, 0.62 * c.pitch * k);
-      const count = Math.floor(span / p);
-      let teeth = `M${x0} ${y + band}V${y + depth}`;
-      for (let i = 0; i < count; i++) teeth += `L${n(x0 + (i + 0.5) * p)} ${y}L${n(x0 + (i + 1) * p)} ${n(y + depth)}`;
-      teeth += `V${y + band}Z`;
+      // Each comb is a steel leaf from a thread gauge: true-size teeth along its top edge, its pitch stamped on
+      // it, and a rounded end with the hole it pivots on.
+      const R = (band - depth) / 2, xr = x0 + span - R, mid = y + depth + R;
+      const count = Math.floor((span - 3 * R - 4) / p);
+      let edge = `M${x0} ${n(y + depth)}`;
+      for (let i = 0; i < count; i++) edge += `L${n(x0 + (i + 0.5) * p)} ${y}L${n(x0 + (i + 1) * p)} ${n(y + depth)}`;
+      const hole = Math.min(4.5, R * 0.42);
+      const leaf = `M${x0} ${y + band}V${n(y + depth)}${edge.slice(edge.indexOf('L'))}H${n(xr)}A${n(R)} ${n(R)} 0 0 1 ${n(xr)} ${y + band}Z`
+        + `M${n(xr + hole)} ${n(mid)}a${n(hole)} ${n(hole)} 0 1 0 ${n(-2 * hole)} 0a${n(hole)} ${n(hole)} 0 1 0 ${n(2 * hole)} 0Z`;
       const on = st.comb === c.key;
       const t = threadOnComb(c, st.dia);
-      s += `<path d="${teeth}" class="comb"/>`;
+      s += `<path d="${leaf}" class="comb" fill-rule="evenodd"/><path d="${edge}" class="comb-lit"/>`
+        + `<circle cx="${n(xr)}" cy="${n(mid)}" r="${n(hole)}" class="comb-pivot"/>`;
+      // The stamp: the pitch as the leaf of a real gauge carries it, 20 (threads per inch) or 1.0 (mm).
+      const stamp = c.system === 'inch' ? c.threads[0].tpi : Number.isInteger(c.pitch) ? c.pitch.toFixed(1) : c.pitch;
+      for (const [dy, cls] of [[-0.8, 'comb-stamp sh'], [0, 'comb-stamp']]) s += `<text x="${n(xr - R - 6)}" y="${n(mid + 4.5 + dy)}" text-anchor="end" class="${cls}">${stamp}</text>`;
       // Number the notches under the comb: 0, 5 and 10. By the tenth, close pitches have parted company.
       // On a fine comb the 5 would crowd the 10, so it keeps its tick and loses its number.
       for (const i of [0, 5, 10]) {
