@@ -619,6 +619,15 @@ try {
   await page.waitForSelector('.case');
   await fits(page, 'the drill index on a laptop');
 
+  // On a short laptop window the picker, which stays in view beside the cards, is taller than the window for inch
+  // machine screws: it scrolls inside itself, so the materials at its foot can always be reached.
+  const shortTop = await device({ width: 1366, height: 650 });
+  await shortTop.page.goto(base + '#/?type=machine&size=1%2F4-20&into=aluminium&head=socket');
+  await shortTop.page.waitForSelector('.picker .types');
+  const pk = await shortTop.page.$eval('.picker', p => ({ bottom: p.getBoundingClientRect().bottom, scrolls: p.scrollHeight > p.clientHeight }));
+  assert.ok(pk.bottom <= 650 && pk.scrolls, `the picker runs to ${pk.bottom} px in a 650 px window`);
+  await shortTop.ctx.close();
+
   // Installable: a manifest with a name, and no complaints from Chromium.
   const cdp = await laptop.ctx.newCDPSession(page);
   const { installabilityErrors } = await cdp.send('Page.getInstallabilityErrors');

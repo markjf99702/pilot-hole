@@ -210,7 +210,9 @@ main { max-width: 1160px; margin: 0 auto; padding: 16px 16px 40px; outline: none
 .holes { display: grid; gap: 14px; }
 @media (min-width: 940px) {
   .holes { grid-template-columns: minmax(330px, 400px) minmax(0, 1fr); gap: 28px; align-items: start; }
-  .picker { position: sticky; top: calc(var(--bar-h) + 18px); }
+  /* It stays in view while the cards scroll; taller than the window (inch machine screws on a short laptop
+     screen), it scrolls inside itself so the materials at its foot can still be reached */
+  .picker { position: sticky; top: calc(var(--bar-h) + 18px); max-height: calc(100vh - var(--bar-h) - 36px); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
 }
 .picker {
   background: var(--card); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow);
