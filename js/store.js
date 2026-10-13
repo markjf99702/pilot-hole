@@ -49,6 +49,8 @@ export const store = {
     changed();
   },
   isMissing: (setId, bitId) => state.missing.includes(`${setId}:${bitId}`),
+  // Bits gone missing from the sets you still have. A set taken out keeps its marks for when it comes back.
+  missingInOwned: () => state.missing.filter(m => state.sets.includes(m.slice(0, m.indexOf(':')))),
   setMissing(setId, bitId, gone) {
     const key = `${setId}:${bitId}`;
     state.missing = state.missing.filter(m => m !== key);

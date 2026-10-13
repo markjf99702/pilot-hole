@@ -586,6 +586,14 @@ test('the store keeps sets, missing and loose bits, and loads only its own files
   store.addLoose('n:29');
   store.addLoose('nonsense');
   assert.ok(store.has('m:2.5') && store.has('n:29') && !store.has('f:7/64'));
+  // A bit missing from a set you've taken out isn't counted, but it's still marked when the set comes back.
+  assert.equal(store.missingInOwned().length, 1);
+  store.setSet('frac29', false);
+  assert.equal(store.missingInOwned().length, 0);
+  store.setSet('frac29', true);
+  assert.deepEqual(store.missingInOwned(), ['frac29:f:7/64']);
+  store.setSet('met25', false);
+  store.setSet('met25', true); // so the sets are back in the order the rest of this test expects
   const saved = JSON.parse(mem.get('pilot-hole.v1'));
   assert.deepEqual(saved.sets, ['frac29', 'met25']);
   assert.deepEqual(saved.missing, ['frac29:f:7/64']);

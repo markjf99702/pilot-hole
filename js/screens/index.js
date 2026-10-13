@@ -19,7 +19,7 @@ export function renderIndex(main) {
   function draw() {
     const owned = store.sets.map(setById).filter(Boolean);
     const others = SETS.filter(s => !store.sets.includes(s.id));
-    const missing = store.missing.length;
+    const missing = store.missingInOwned().length;
     const count = store.owned().size;
     root.innerHTML = `
       <div class="index-head">
