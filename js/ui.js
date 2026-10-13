@@ -23,8 +23,10 @@ export const bitSizes = b => sizeText(b.mm, b.metric);
 // How far a bit is from the size wanted (exact, 0.0035″ big, 0.05 mm small) lives with the other units.
 export { offWords };
 
-// Fractions inside any text: 1/4-20 stays as written, but "1-1/2″" can be set as a real fraction.
-export const fracify = s => esc(s).replace(/(\d+)\/(\d+)(?=″)/g, '<span class="fr">$1/$2</span>');
+// Fractions inside any text: 1/4-20 stays as written, but "1-1/2″" can be set as a real fraction. A number keeps
+// its unit on its line too, and a range its two ends, so a note never breaks "20.5–23.5 mm" anywhere.
+export const fracify = s => esc(s).replace(/(\d+)\/(\d+)(?=″)/g, '<span class="fr">$1/$2</span>')
+  .replace(/(\d) (mm|°C)\b/g, '$1\u00a0$2').replace(/(\d)–(?=\d)/g, '$1–\u2060');
 
 // The one-file copy (scripts/build.mjs) has no offline copy and can't be installed, and shown inside another
 // page, as the playable copy is, it can't start a download either.

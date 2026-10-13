@@ -184,7 +184,7 @@ export function renderHoles(main, fromHash) {
         <h2>Tools</h2>
         <dl>${r.tools.map(t => `<div><dt>${esc(t.what)}</dt><dd>${fracify(t.text)}</dd></div>`).join('')}</dl>
       </section>
-      ${r.note ? `<p class="mat-note">${esc(r.note)}</p>` : ''}
+      ${r.note ? `<p class="mat-note">${fracify(r.note)}</p>` : ''}
       <p class="yours">Answers come in your bits: ${yours}. <button type="button" class="link-btn" data-act="bits">Change</button></p>`;
   }
 

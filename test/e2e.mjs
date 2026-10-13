@@ -158,6 +158,16 @@ try {
   await page.waitForFunction(() => document.querySelector('.spec')?.textContent.includes('lag'));
   assert.equal(await text(page, '.hole[data-key="shank"] .sizes'), '0.3125″ · 7.94 mm.');
 
+  // A note keeps a size with its unit and a range in one piece: the hinge cup's "20.5–23.5 mm" broke after
+  // "23.5" on this phone, and would otherwise break at its dash.
+  await page.evaluate(() => { location.hash = '#/?type=hinge&size=35&into=plywood'; });
+  await page.waitForFunction(() => document.querySelector('.spec')?.textContent.includes('hinge'));
+  assert.equal(await page.$eval('.hole[data-key="cup"] .note', p => {
+    const t = p.firstChild, at = t.data.indexOf('20.5'), r = document.createRange();
+    r.setStart(t, at); r.setEnd(t, t.data.indexOf('mm', at) + 2);
+    return r.getClientRects().length;
+  }), 1, '"20.5–23.5 mm" is split across two lines');
+
   // A reload comes back to the same pick.
   await page.click('[data-type="insert"]');
   await page.click('[data-mat="hardwood"]');
