@@ -297,7 +297,11 @@ try {
   assert.match(await text(page, '.g-could'), /Could be 1\/4″ or M6/);
   for (let i = 0; i < 4; i++) await page.click('[data-l="-0.5"]');
   assert.equal(await page.evaluate(() => document.querySelectorAll('.g-read b')[1].textContent), '23.4');
+  // In inches it's about 15/16″ (that's 23.8 mm), and an inch is an inch.
+  const inchRead = () => page.evaluate(() => document.querySelectorAll('.g-read small')[1].textContent);
+  assert.equal(await inchRead(), '≈ 15/16″');
   for (let i = 0; i < 4; i++) await page.click('[data-l="0.5"]');
+  assert.equal(await inchRead(), '1″');
   // A touch inside the box the screw lies in doesn't move the jaws.
   const f2 = await page.locator('#gField').boundingBox();
   await page.mouse.move(f2.x + 60, f2.y + 120); await page.mouse.down(); await page.mouse.move(f2.x + 140, f2.y + 300, { steps: 4 }); await page.mouse.up();

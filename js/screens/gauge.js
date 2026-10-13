@@ -260,7 +260,7 @@ export function renderGauge(main, hash = '') {
       ${st.what === 'screw' ? `<div class="g-row g-meas">
         <span class="g-what">Length <small>under the head;<br>a flat head, overall</small></span>
         <button type="button" class="g-nudge" data-l="-0.5" aria-label="Shorter">${ICON.minus}</button>
-        <span class="g-read"><b>${mmText(st.len, 1)}</b> mm <small>${fracText(st.len / MM, 16)}″</small></span>
+        <span class="g-read"><b>${mmText(st.len, 1)}</b> mm <small>${inchLen(st.len)}</small></span>
         <button type="button" class="g-nudge" data-l="0.5" aria-label="Longer">${ICON.plus}</button>
       </div>` : ''}
       ${atEnd ? '<p class="g-small">Longer than the glass? <button type="button" class="link-btn" data-tuck>Tuck this panel away</button> for more.</p>' : ''}
@@ -269,6 +269,10 @@ export function renderGauge(main, hash = '') {
         ${nextBtn}
       </div>`;
   }
+
+  // A length in inches to the nearest 16th, the way a tape reads, and "≈" when the 16th is further off than a
+  // pixel can tell: 12.7 mm is 1/2″, 12 mm about 1/2″.
+  const inchLen = mm => `${Math.abs(Math.round(mm / MM * 16) / 16 * MM - mm) > 1 / st.k ? '≈ ' : ''}${fracText(mm / MM, 16)}″`;
 
   // What's being measured, for the tables it's looked up in: a drill bit, or a blunt or pointed screw.
   const sort = () => (st.what === 'bit' ? 'bit' : st.tip);
