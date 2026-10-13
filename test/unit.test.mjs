@@ -544,6 +544,67 @@ test('a measured diameter narrows the threads, and the combs tell close pitches 
   assert.equal(G.nearTwin(c48, m5), ten32);
   assert.equal(G.nearTwin(combs, c20), null, '1/4-20 has no twin');
   assert.ok(G.expectedMajor(threadById('M5')) - G.expectedMajor(threadById('10-32')) > 0.15, 'but their sizes differ');
+  // So the size gives the answer: 4.88 mm is clearly the M5, 4.70 the #10-32, and 4.80 only leans to the M5.
+  const M5 = threadById('M5'), T32 = threadById('10-32');
+  assert.deepEqual(G.twinCall(T32, M5, 4.88), { thread: M5, sure: true });
+  assert.deepEqual(G.twinCall(M5, T32, 4.70), { thread: T32, sure: true });
+  assert.deepEqual(G.twinCall(T32, M5, 4.80), { thread: M5, sure: false });
+});
+
+test('a measured drill bit: everything within a pixel is in the running, and yours come first', () => {
+  const px = 1 / 6; // a millimetre is 6 pixels on a phone
+  const names = (d, o) => G.bitCandidates(d, px, o).map(x => x.bit.name);
+  // 2.78 mm: 7/64″ by a whisker, with the number and metric bits the screen can't tell from it named too.
+  const c = names(2.78);
+  assert.equal(c[0], '7/64″');
+  assert.ok(c.includes('#35') && c.includes('2.8 mm'), c.join(', '));
+  assert.ok(G.bitCandidates(2.78, px).every(x => Math.abs(x.diff) <= px + 1e-9), 'nothing further than a pixel');
+  // Exactly a #29, and no sets: the #29.
+  assert.equal(names(3.454)[0], '#29');
+  // But with a metric set, the 3.5 mm a pixel away is likelier than a #29 you don't own...
+  assert.equal(names(3.454, { owned: ownedBits({ sets: ['met25'] }) })[0], '3.5 mm');
+  // ...and a bit gone missing from your case is likelier still.
+  assert.equal(names(2.8, { owned: ownedBits({ sets: ['met25'] }), missing: new Set(['f:7/64']) })[0], '7/64″');
+  // A bit owned but most of a pixel away doesn't beat an exact match.
+  assert.equal(names(3.454, { owned: new Set(['f:9/64']) })[0], '#29');
+  // Off the end of every series, the nearest bit there is.
+  assert.equal(G.bitCandidates(30, px).length, 1);
+});
+
+test('the named screw drawn at true size: head, shank, threads and point in millimetres', () => {
+  const bolt = G.screwShape({ kind: 'machine', thread: threadById('1/4-20'), len: { in: 1.5 }, head: 'hex' });
+  close(bolt.d, 6.35);
+  close(bolt.p, 1.27);
+  close(bolt.length, 38.1);
+  close(bolt.threaded, 2 * 6.35 + 6.35, 1e-9, 'a bolt is threaded 2d + 1/4″');
+  close(bolt.head.af, 7 / 16 * 25.4);
+  close(bolt.head.height, 5 / 32 * 25.4);
+  assert.equal(bolt.finish, 'bright');
+  // A socket head cap screw is threaded right up, black, with a head as tall as the screw is thick.
+  const cap = G.screwShape({ kind: 'machine', thread: threadById('1/4-20'), len: { in: 1.5 }, head: 'socket' });
+  close(cap.threaded, 38.1);
+  assert.equal(cap.finish, 'black');
+  close(cap.head.height, 6.35);
+  // A short bolt is threaded all the way.
+  close(G.screwShape({ kind: 'machine', thread: threadById('M6'), len: { mm: 16 }, head: 'hex' }).threaded, 16);
+  // A countersunk M4 has the ISO 10642 head; no head picked yet draws none.
+  assert.equal(G.screwShape({ kind: 'machine', thread: threadById('M4'), len: { mm: 12 }, head: 'flat' }).head.angle, 90);
+  assert.equal(G.screwShape({ kind: 'machine', thread: threadById('M4'), len: { mm: 12 } }).head, null);
+  // Wood screws: a gold flat head and a gimlet point; lags and sheet-metal screws their own heads.
+  const wood = G.screwShape({ kind: 'wood', gauge: G.gaugeFor(4.05, 'wood'), len: { in: 1.25 } });
+  close(wood.d, 0.164 * 25.4);
+  assert.equal(wood.point, 'gimlet');
+  assert.equal(wood.head.angle, 82);
+  close(wood.head.dia, 0.332 * 25.4);
+  assert.ok(wood.threaded < wood.length, 'a long wood screw has a plain shank');
+  assert.equal(G.screwShape({ kind: 'lag', gauge: G.gaugeFor(7.8, 'lag'), len: { in: 3 } }).head.kind, 'hex');
+  assert.equal(G.screwShape({ kind: 'sheet', gauge: G.gaugeFor(4.1, 'sheet'), len: { in: 0.75 } }).head.kind, 'pan');
+  // Every head every thread comes with has a shape to draw.
+  for (const t of THREADS) for (const h of FS.headsFor(t)) {
+    const s = FS.headShape(t, h);
+    assert.ok(s && (s.dia > t.d || s.af > t.d), `${t.label} ${h}`);
+    if (h !== 'flat') assert.ok(s.height > 0, `${t.label} ${h} height`);
+  }
 });
 
 test('pointed screws by gauge, and drill bits by size', () => {

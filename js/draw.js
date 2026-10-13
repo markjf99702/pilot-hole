@@ -83,6 +83,101 @@ function forstnerTop({ w, h, d }) {
   </svg>`;
 }
 
+// ---------- A screw or a bit at true size, lying on the gauge's glass ----------
+// k is the screen's pixels to the millimetre. It lies the way it was measured: its side on the left fence (x0)
+// and its head above the top one (y0), or a flat head's top on it. Shaded like the bits in the drill index.
+// Returns the markup and how far right and down it reaches, so the name can sit beside it.
+export function screwOnGlass(s, { k, x0, y0 }) {
+  const R = s.d / 2 * k, r = s.root / 2 * k, P = s.p * k, cx = x0 + R;
+  const fill = `url(#g-${s.finish})`;
+  const h = s.head;
+  let head = '', top = y0, halfW = R;
+  if (h?.kind === 'flat') {
+    // A countersunk head: its top on the fence, the cone running down into the shank.
+    const D = h.dia / 2 * k, hh = (h.dia - s.d) / 2 / Math.tan(h.angle / 2 * Math.PI / 180) * k, lip = Math.max(0.6, 0.04 * h.dia * k);
+    head = `<path d="M${n(cx - D)} ${y0}H${n(cx + D)}V${n(y0 + lip)}L${n(cx + R)} ${n(y0 + hh)}H${n(cx - R)}L${n(cx - D)} ${n(y0 + lip)}Z" fill="${fill}"/>`
+      + `<path d="M${n(cx - D)} ${n(y0 + lip)}H${n(cx + D)}" class="sg-edge"/>`;
+    top = y0 + hh;
+    halfW = D;
+  } else if (h) {
+    const out = headAbove(h, cx, y0, k, fill);
+    head = out.svg;
+    halfW = out.halfW;
+  }
+  const end = y0 + s.length * k;
+  const tStart = Math.max(top, end - s.threaded * k);
+  let body = '';
+  // The plain shank between the head and the threads.
+  if (tStart > top + 0.5) {
+    const S = (s.shank || s.d) / 2 * k;
+    body += `<rect x="${n(cx - S)}" y="${n(top)}" width="${n(2 * S)}" height="${n(tStart - top)}" fill="${fill}"/>`;
+  }
+  // The threads: crests on the left half a pitch below those on the right (a right-hand thread), tapering
+  // into a point, or a chamfered end on a machine screw.
+  const tip = s.point === 'chamfer' ? 0 : (s.point === 'sharp' ? 1.2 : 1.6) * s.d * k;
+  const rad = (y, crest) => {
+    const base = crest ? R : r;
+    if (s.point === 'chamfer') return crest ? Math.min(R, r + Math.max(0, end - y)) : r;
+    return base * Math.min(1, Math.max(0, (end - y) / tip));
+  };
+  const left = [], right = [];
+  const step = P / 2;
+  for (let j = 0, y = tStart; y < end - 0.01; j++, y = tStart + j * step) {
+    left.push(`${n(cx - rad(y, j % 2 === 1))} ${n(y)}`);
+    right.push(`${n(cx + rad(y, j % 2 === 0))} ${n(y)}`);
+  }
+  const endL = s.point === 'chamfer' ? `${n(cx - r)} ${n(end)}L${n(cx + r)} ${n(end)}` : `${n(cx)} ${n(end)}`;
+  body += `<path d="M${left.join('L')}L${endL}L${right.reverse().join('L')}Z" fill="${fill}"/>`;
+  // Each crest as a line across the front, and the groove between, where the pitch is wide enough to read.
+  let crests = '', grooves = '';
+  for (let y = tStart + P / 2; y < end - P / 2; y += P) {
+    crests += `M${n(cx - rad(y, true))} ${n(y)}L${n(cx + rad(y - P / 2, true))} ${n(y - P / 2)}`;
+    grooves += `M${n(cx - rad(y + P / 2, false))} ${n(y + P / 2)}L${n(cx + rad(y, false))} ${n(y)}`;
+  }
+  body += `<path d="${crests}" class="sg-crest" stroke-width="${n(Math.max(0.6, Math.min(1.6, P * 0.16)))}"/>`;
+  if (P >= 5) body += `<path d="${grooves}" class="sg-groove" stroke-width="${n(Math.min(2.2, P * 0.22))}"/>`;
+  return { svg: `<g class="sg">${body}${head}</g>`, right: cx + Math.max(halfW, R), bottom: end };
+}
+
+// The heads that stand above the fence: a hex across its corners, a socket head, a button dome, a pan head.
+function headAbove(h, cx, y0, k, fill) {
+  if (h.kind === 'hex') {
+    const W = h.af * 2 / Math.sqrt(3) / 2 * k, H = h.height * k, c = Math.min(H * 0.25, W * 0.2), t = y0 - H;
+    const faces = `M${n(cx - W / 2)} ${n(t + c * 0.55)}V${y0}M${n(cx + W / 2)} ${n(t + c * 0.55)}V${y0}`;
+    return { halfW: W, svg: `<path d="M${n(cx - W)} ${y0}V${n(t + c)}L${n(cx - W + c)} ${n(t)}H${n(cx + W - c)}L${n(cx + W)} ${n(t + c)}V${y0}Z" fill="${fill}"/>`
+      + `<path d="M${n(cx - W)} ${y0}V${n(t + c)}L${n(cx - W + c)} ${n(t)}H${n(cx - W / 2)}V${y0}Z M${n(cx + W)} ${y0}V${n(t + c)}L${n(cx + W - c)} ${n(t)}H${n(cx + W / 2)}V${y0}Z" fill="rgba(0,0,0,.2)"/>`
+      + `<path d="${faces}" class="sg-edge"/>` };
+  }
+  const D = h.dia / 2 * k, H = h.height * k, t = y0 - H;
+  if (h.kind === 'socket') {
+    const c = Math.min(H * 0.12, D * 0.12);
+    let knurl = '';
+    for (let x = cx - D + D / 8; x < cx + D - 1; x += D / 8) knurl += `M${n(x)} ${n(t + H * 0.22)}V${n(y0 - 0.5)}`;
+    return { halfW: D, svg: `<path d="M${n(cx - D)} ${y0}V${n(t + c)}L${n(cx - D + c)} ${n(t)}H${n(cx + D - c)}L${n(cx + D)} ${n(t + c)}V${y0}Z" fill="${fill}"/>`
+      + `<path d="${knurl}" class="sg-knurl"/>` };
+  }
+  if (h.kind === 'button') return { halfW: D, svg: `<path d="M${n(cx - D)} ${y0}A${n(D)} ${n(H)} 0 0 1 ${n(cx + D)} ${y0}Z" fill="${fill}"/>` };
+  return { halfW: D, svg: `<path d="M${n(cx - D)} ${y0}V${n(y0 - H * 0.45)}Q${n(cx - D)} ${n(t)} ${n(cx - D * 0.55)} ${n(t)}H${n(cx + D * 0.55)}Q${n(cx + D)} ${n(t)} ${n(cx + D)} ${n(y0 - H * 0.45)}V${y0}Z" fill="${fill}"/>` };
+}
+
+// A twist bit lying on the glass at true size: its shank between the fences, then the flutes and a 118° point.
+export function bitOnGlass(b, { k, x0, y0, finish = 'gold', shank = 24, flutes = 30 }) {
+  const R = b.mm / 2 * k, cx = x0 + R, fill = `url(#g-${finish})`;
+  const y1 = y0 + shank * k, y2 = y1 + flutes * k, tip = y2 + R * 0.6;
+  let s = `<rect x="${n(cx - R)}" y="${y0}" width="${n(2 * R)}" height="${n(y2 - y0)}" fill="${fill}"/>`
+    + `<path d="M${n(cx - R)} ${n(y2)}L${n(cx)} ${n(tip)}L${n(cx + R)} ${n(y2)}Z" fill="${fill}"/>`
+    + `<path d="M${n(cx)} ${n(tip)}L${n(cx + R)} ${n(y2)}L${n(cx + R * 0.2)} ${n(y2 - R * 0.15)}Z" fill="rgba(0,0,0,.28)"/>`;
+  // Two flutes winding the same way as in the drill index, and the shank's highlight.
+  const lead = Math.max(5.4 * R, 4), slant = 1.6 * R, band = 0.9 * R;
+  let fl = '';
+  // A band's low end is on the left, a slant below its right end: stop before that passes the point.
+  for (let y = y1 + lead * 0.2; y + slant + band < y2 - R * 0.2; y += lead / 2) fl += `M${n(cx - R)} ${n(y + slant)}L${n(cx + R)} ${n(y)}L${n(cx + R)} ${n(y + band)}L${n(cx - R)} ${n(y + slant + band)}Z`;
+  s += `<path d="${fl}" fill="rgba(0,0,0,.32)"/>`;
+  s += `<rect x="${n(cx - R * 0.3)}" y="${y0}" width="${n(Math.max(R * 0.16, 0.6))}" height="${n(y2 - y0)}" fill="rgba(255,255,255,.35)"/>`;
+  s += `<path d="M${n(cx - R)} ${n(y1)}H${n(cx + R)}" class="sg-edge"/>`;
+  return { svg: `<g class="sg">${s}</g>`, right: cx + R, bottom: tip };
+}
+
 // A countersink, side on: the cone the head sits in.
 export function coneGlyph({ w = 44, h = 44, angle = 82 } = {}) {
   const top = 10, depth = 15, half = depth * Math.tan((angle / 2) * Math.PI / 180);

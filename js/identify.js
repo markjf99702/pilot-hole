@@ -2,7 +2,7 @@
 // the thread combs to try, standard lengths, and the name it ends up with. No page code.
 import { MM, toFrac, fracText, mmText } from './units.js';
 import { THREADS, fullName } from './threads.js';
-import { WOOD_SCREWS, SHEET_SCREWS, LAGS, headWords } from './fasteners.js';
+import { WOOD_SCREWS, SHEET_SCREWS, LAGS, headWords, headShape } from './fasteners.js';
 import { BITS } from './drills.js';
 
 // ISO/IEC 7810 ID-1: every bank card, ID card and loyalty card is this size.
@@ -56,6 +56,13 @@ export function combsFor(dMm, { more = false } = {}) {
 // M2.5 and #2-56), so the measured size has to.
 export const nearTwin = (combs, comb) => combs.find(c => c !== comb && Math.abs(c.pitch - comb.pitch) / comb.pitch < 0.02) || null;
 
+// Which of two such twins the measured size points to, and whether it's clear (a quarter of the gap between
+// their sizes or more from halfway) or a close call.
+export function twinCall(a, b, dMm) {
+  const ea = expectedMajor(a), eb = expectedMajor(b);
+  return { thread: Math.abs(dMm - ea) <= Math.abs(dMm - eb) ? a : b, sure: Math.abs(dMm - (ea + eb) / 2) >= Math.abs(ea - eb) / 4 };
+}
+
 // The ten-thread span that tells close pitches apart: 1/4-20 spans 12.7 mm, M6 × 1 spans 10, 1/4-28 spans 9.07.
 export const tenThreads = pitchMm => 10 * pitchMm;
 
@@ -79,6 +86,19 @@ export function bitsNear(dMm, n = 4) {
     .map(b => ({ bit: b, diff: b.mm - dMm }))
     .sort((a, b) => Math.abs(a.diff) - Math.abs(b.diff) || (a.bit.kind === 'frac' ? -1 : 1))
     .slice(0, n);
+}
+
+// What a measured drill bit could be, likeliest first. A screen can't split hairs, so every bit within a pixel
+// of the measurement is in the running, and the answer leans on what's likely: a bit gone missing from one of
+// your cases, then one you own, then the everyday fractional and metric bits over number and letter ones.
+export function bitCandidates(dMm, mmPerPx, { owned = new Set(), missing = new Set() } = {}) {
+  const all = BITS.filter(b => b.kind !== 'forstner').map(b => ({ bit: b, diff: b.mm - dMm }));
+  const px = x => Math.abs(x.diff) / mmPerPx;
+  const score = x => px(x) + (x.bit.kind === 'num' || x.bit.kind === 'letter' ? 0.25 : 0)
+    - (missing.has(x.bit.id) ? 0.7 : owned.has(x.bit.id) ? 0.35 : 0);
+  const within = all.filter(x => px(x) <= 1);
+  const pool = within.length ? within : [all.reduce((a, b) => (Math.abs(b.diff) < Math.abs(a.diff) ? b : a))];
+  return pool.sort((a, b) => score(a) - score(b));
 }
 
 // Lengths screws are sold in.
@@ -110,6 +130,33 @@ export function screwName({ kind, thread, gauge, len, head }) {
   if (kind === 'sheet') return `${gauge.label}${L} sheet-metal screw`;
   if (kind === 'lag') return `${gauge.label}${L} lag screw`;
   return '';
+}
+
+// What the named screw looks like, in millimetres, to draw it at true size where it lay on the glass: its head,
+// a plain shank, the threaded part and the point. Lengths run from under the head (from the top of a flat
+// head), the way the gauge measures them. root is the thread's core; for wood screws only roughly.
+export function screwShape({ kind, thread, gauge, len, head }) {
+  const L = len.mm ?? len.in * MM;
+  if (kind === 'machine') {
+    const t = thread, d = t.d;
+    // Machine screws are threaded right up; a bolt longer than its thread (2d + 1/4″, or 2d + 6 mm) has a plain shank.
+    const b = head === 'hex' ? 2 * d + (t.system === 'inch' ? MM / 4 : 6) : L;
+    return { d, p: t.p, root: d - 1.2269 * t.p, length: L, threaded: L - b < 2 * t.p ? L : b,
+      head: head ? headShape(t, head) : null, point: 'chamfer',
+      finish: head === 'socket' || head === 'button' || (head === 'flat' && t.system === 'metric') ? 'black' : 'bright' };
+  }
+  if (kind === 'wood') {
+    const w = WOOD_SCREWS.find(x => String(x.g) === gauge.id), d = w.d * MM;
+    return { d, p: MM / w.tpi, root: 0.72 * d, shank: 0.95 * d, length: L, threaded: L >= 25 ? 0.66 * L : L,
+      head: { kind: 'flat', dia: w.head * MM, angle: 82 }, point: 'gimlet', finish: 'gold' };
+  }
+  if (kind === 'sheet') {
+    const s = SHEET_SCREWS.find(x => String(x.g) === gauge.id), d = s.d * MM;
+    return { d, p: MM / s.tpi, root: 0.72 * d, length: L, threaded: L, head: { kind: 'pan', dia: 1.9 * d, height: 0.65 * d }, point: 'sharp', finish: 'bright' };
+  }
+  const l = LAGS.find(x => x.id === gauge.id);
+  return { d: l.d, p: l.p, root: 0.75 * l.d, length: L, threaded: Math.min(L - l.d, L / 2 + 12.7),
+    head: { kind: 'hex', af: l.af, height: l.headH }, point: 'gimlet', finish: 'bright' };
 }
 
 // Which way round a length reads best for a screw: metric threads in millimetres, the rest in inches.

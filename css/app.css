@@ -115,7 +115,7 @@ h1, h2, h3 { line-height: 1.12; margin: 0; }
 
 /* Fractions: <span class="fr">7/64</span> is set as a real fraction where the type is big enough to read it,
    and left as 7/64 in running text. */
-.fr { white-space: nowrap; }
+.fr, .nw { white-space: nowrap; }
 .big .fr, .spec .fr, .bitname .fr, .gauge-name .fr { font-feature-settings: 'frac'; }
 .big .sp, .spec .sp, .bitname .sp, .gauge-name .sp { font-size: 0; }
 .big .sp + .fr, .spec .sp + .fr, .bitname .sp + .fr, .gauge-name .sp + .fr { margin-left: .05em; }
@@ -507,18 +507,26 @@ body.gauge-on > .jd-foot { display: none; }
 .g-steps li.done { color: var(--steel-ink); }
 .g-steps li.now { background: var(--bg); color: var(--ink); }
 .g-zoom { flex-basis: 100%; text-align: center; padding: 4px 8px; border-radius: 8px; background: var(--accent); color: #fff; font-weight: 650; font-size: 14px; }
-/* The glass: light in both schemes, so a screw stands out on it */
-.g-field {
-  position: relative; flex: 1; min-height: 0; overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none;
+.g-field { position: relative; flex: 1; min-height: 0; overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none; }
+/* The glass: light in both schemes, so a screw stands out on it. On the Name step only the band the
+   screw is drawn on is glass; what's under it follows the page. */
+.gauge:not([data-step="name"]) .g-field, .g-glass {
   background: #f7f5ef; color: #1c1e21;
-  --ink: #1c1e21; --ink-2: #43474d; --muted: #6b6f75; --accent: #cf3f1c; --accent-2: #a9321a;
+  --ink: #1c1e21; --ink-2: #43474d; --muted: #6b6f75; --accent: #cf3f1c; --accent-2: #a9321a; --line: #ddd8cc;
 }
-@media (prefers-color-scheme: dark) { .g-field { background: #dcd9d1; } }
+@media (prefers-color-scheme: dark) { .gauge:not([data-step="name"]) .g-field, .g-glass { background: #dcd9d1; --line: #c4c0b6; } }
 #gSvg { position: absolute; inset: 0; display: block; }
 .g-over { position: absolute; inset: 0; pointer-events: none; }
 .g-over > * { pointer-events: auto; }
 .gauge[data-step="name"] .g-field { touch-action: auto; user-select: text; -webkit-user-select: text; background: var(--bg); color: var(--ink); }
 .gauge[data-step="name"] .g-over { overflow-y: auto; overscroll-behavior: contain; }
+/* Turned on its side, a phone has no room to measure */
+.g-turn {
+  position: absolute; inset: 0; z-index: 3; display: grid; place-items: center; margin: 0; padding: 24px;
+  background: rgba(247, 245, 239, .96); color: #1c1e21; text-align: center; font-weight: 650; font-size: 17px; line-height: 1.35;
+}
+/* On the gauge a note shows over the middle of the glass, clear of the instructions and the panel */
+body.gauge-on .toast { bottom: auto; top: 44%; }
 .card-ghost { fill: rgba(42, 101, 171, .06); stroke: #2a65ab; stroke-width: 1.3; stroke-dasharray: 6 4; }
 .fence { stroke: #1c1e21; stroke-width: 2; fill: none; }
 .jaw { stroke: #cf3f1c; stroke-width: 2.2; fill: none; }
@@ -569,14 +577,35 @@ body.gauge-on > .jd-foot { display: none; }
 .g-end .g-small { flex: 1; }
 .g-next { flex: none; }
 .g-next svg, .btn svg { flex: none; }
-.g-result { max-width: 560px; margin: 0 auto; padding: 18px 16px 28px; }
+.g-tuck .g-mini { flex: 1; min-width: 0; margin: 0; font-size: 14.5px; color: var(--ink-2); }
+.g-tuck .g-mini b { font-size: 17px; color: var(--ink); }
+
+/* The Name step: the screw or bit drawn at true size where it lay, its name beside it */
+.g-result { padding: 0 0 28px; }
+.g-glass { position: relative; border-bottom: 1px solid var(--line); }
+.g-draw { position: absolute; left: 0; top: 0; display: block; overflow: visible; }
+.fence.faint { stroke: rgba(28, 30, 33, .35); stroke-width: 1.5; }
+.sg { filter: drop-shadow(0 1.5px 1.2px rgba(0, 0, 0, .38)); }
+.sg-edge { fill: none; stroke: rgba(0, 0, 0, .38); stroke-width: 1; }
+.sg-crest { fill: none; stroke: rgba(255, 255, 255, .5); stroke-linecap: round; }
+.sg-groove { fill: none; stroke: rgba(0, 0, 0, .3); stroke-linecap: round; }
+.sg-knurl { fill: none; stroke: rgba(255, 255, 255, .2); stroke-width: 1; }
+.g-label { position: relative; max-width: 560px; padding-right: 16px; padding-bottom: 18px; }
+.g-lay { margin: 10px 0 0; font-size: 13.5px; color: var(--muted); }
+.g-details { max-width: 560px; margin: 0 auto; padding: 4px 16px 0; }
+@media (min-width: 700px) { .g-details { margin: 0 0 0 var(--lx); padding-left: 0; } }
 .g-kicker { margin: 0; font: 750 13px var(--sans); font-stretch: 87.5%; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
-.gauge-name { margin: 4px 0 8px; font: 800 38px/1.05 var(--sans); font-stretch: 87.5%; letter-spacing: -.01em; animation: stamp .32s cubic-bezier(.2, .9, .3, 1.2) both; transform-origin: left center; }
+.gauge-name { margin: 4px 0 8px; font: 800 34px/1.05 var(--sans); font-stretch: 87.5%; letter-spacing: -.01em; text-wrap: balance; animation: stamp .32s cubic-bezier(.2, .9, .3, 1.2) both; transform-origin: left center; }
+@media (min-width: 420px) { .gauge-name { font-size: 38px; } }
 @keyframes stamp { from { opacity: 0; transform: scale(1.12); } 60% { opacity: 1; } to { transform: none; } }
-.g-facts { margin: 0 0 8px; color: var(--ink-2); }
+.g-facts { margin: 0 0 8px; color: var(--ink-2); font-size: 15.5px; }
+.g-twin { margin: 8px 0 0; padding: 6px 10px; border-radius: 10px; background: rgba(207, 63, 28, .08); font-size: 14.5px; }
+.g-own { margin: 12px 0 0; font-weight: 600; }
+.g-own.mine svg { vertical-align: -3px; color: var(--good); }
 .g-ask { margin: 14px 0 6px; font-weight: 650; }
 .g-heads, .g-kinds { flex-wrap: wrap; overflow: visible; -webkit-mask: none; mask: none; padding: 0; }
-.g-holes, .g-tools { list-style: none; margin: 14px 0 0; padding: 0; border-top: 1px solid var(--line); }
+.g-list h3 { margin: 20px 0 4px; font: 800 13px/1 var(--sans); font-stretch: 87.5%; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.g-holes, .g-tools { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
 .g-holes li, .g-tools li { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--line); }
 .g-holes span, .g-tools span { color: var(--ink-2); }
 .g-holes b, .g-tools b { font: 800 19px var(--sans); font-stretch: 87.5%; text-align: right; }

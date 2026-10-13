@@ -19,6 +19,8 @@ export const WOOD = ['hardwood', 'softwood', 'plywood', 'mdf'];
 // Major diameter by gauge: 0.060″ + 0.013″ per gauge number (ASME B18.6.1). Pilot, shank and head-bore
 // sizes from WOOD Magazine's chart: traditional (tapered) screws for every gauge, and the thinner-shanked
 // production screws sold today for #4 to #14. head is the 82° flat head's diameter (B18.6.1).
+// tpi is the traditional thread count, used only to draw one on the gauge.
+const WOOD_TPI = { 2: 26, 3: 24, 4: 22, 5: 20, 6: 18, 7: 16, 8: 15, 9: 14, 10: 13, 12: 11, 14: 10 };
 export const WOOD_SCREWS = [
   { g: 2, shank: '3/32', hard: '1/16', soft: '1/16', bore: '11/64', head: 0.172 },
   { g: 3, shank: '7/64', hard: '1/16', soft: '1/16', bore: '13/64', head: 0.199 },
@@ -31,7 +33,7 @@ export const WOOD_SCREWS = [
   { g: 10, shank: '3/16', hard: '1/8', soft: '7/64', bore: '25/64', head: 0.385, prod: { hard: '9/64', soft: '1/8', bore: '23/64' } },
   { g: 12, shank: '7/32', hard: '9/64', soft: '1/8', bore: '7/16', head: 0.438, prod: { hard: '5/32', soft: '9/64', bore: '7/16' } },
   { g: 14, shank: '1/4', hard: '5/32', soft: '9/64', bore: '1/2', head: 0.491, prod: { hard: '3/16', soft: '5/32', bore: '1/2' } },
-].map(w => ({ ...w, d: 0.060 + 0.013 * w.g }));
+].map(w => ({ ...w, d: 0.060 + 0.013 * w.g, tpi: WOOD_TPI[w.g] }));
 
 // Drivers for wood screws: Phillips and square (Robertson) by gauge, and the Torx sizes most modern screws use.
 export function woodDrivers(g) {
@@ -128,6 +130,23 @@ export function headWords(t, head) {
   return HEADS[head].name.toLowerCase();
 }
 
+// A head's outline for drawing it at true size on the gauge, in millimetres: how wide it is (a hex across its
+// flats) and how tall. Hex bolt heights from ASME B18.2.1 and ISO 4017, metric button heads from ISO 7380;
+// inch button heads and pan heads go by their usual proportions.
+const HEX_BOLT_H_IN = { '1/4': 5 / 32, '5/16': 13 / 64, '3/8': 15 / 64, '7/16': 9 / 32, '1/2': 5 / 16 };
+const HEX_BOLT_K_MM = { 3: 2, 4: 2.8, 5: 3.5, 6: 4, 8: 5.3, 10: 6.4, 12: 7.5 };
+const BUTTON_MM = { 3: [5.7, 1.65], 4: [7.6, 2.2], 5: [9.5, 2.75], 6: [10.5, 3.3], 8: [14, 4.4], 10: [17.5, 5.5], 12: [21, 6.6] };
+export function headShape(t, head) {
+  const f = headFacts(t, head);
+  if (!f) return null;
+  const d = t.d, inch = t.system === 'inch';
+  if (head === 'socket') return { kind: 'socket', dia: f.headMm, height: f.heightMm };
+  if (head === 'button') return { kind: 'button', dia: inch ? 1.75 * d : BUTTON_MM[d][0], height: inch ? 0.5 * d : BUTTON_MM[d][1] };
+  if (head === 'flat') return { kind: 'flat', dia: f.headMm, angle: f.angle };
+  if (head === 'pan') return { kind: 'pan', dia: 2 * d, height: 0.75 * d };
+  return { kind: 'hex', af: inch ? f.wrenchIn * MM : f.wrenchMm, height: inch ? HEX_BOLT_H_IN[t.size] * MM : HEX_BOLT_K_MM[d] };
+}
+
 // The nut a thread takes, and the flat washer under it. A hex is 2/√3 as wide across its corners as across its flats.
 const CORNERS = 2 / Math.sqrt(3);
 export function nutFor(t) {
@@ -144,29 +163,30 @@ export function nutFor(t) {
 // ---------- Lag screws ----------
 // Inch lags (ASME B18.2.1) and metric coach screws (DIN 571), with their wrench sizes.
 // Lead holes follow the NDS: 40–70% of the shank in softwood, 65–85% in dense hardwood.
+// For drawing one: af is the hex across its flats and headH its height, in millimetres, and p the thread's pitch.
 export const LAGS = [
-  { id: '1/4', d: 0.25 * MM, label: '1/4″', wrench: '7/16″' },
-  { id: '5/16', d: 0.3125 * MM, label: '5/16″', wrench: '1/2″' },
-  { id: '3/8', d: 0.375 * MM, label: '3/8″', wrench: '9/16″' },
-  { id: '1/2', d: 0.5 * MM, label: '1/2″', wrench: '3/4″' },
-  { id: '6', d: 6, label: '6 mm', wrench: '10 mm', metric: true },
-  { id: '8', d: 8, label: '8 mm', wrench: '13 mm', metric: true },
-  { id: '10', d: 10, label: '10 mm', wrench: '17 mm', metric: true },
-  { id: '12', d: 12, label: '12 mm', wrench: '19 mm', metric: true },
+  { id: '1/4', d: 0.25 * MM, label: '1/4″', wrench: '7/16″', af: 7 / 16 * MM, headH: 11 / 64 * MM, p: MM / 10 },
+  { id: '5/16', d: 0.3125 * MM, label: '5/16″', wrench: '1/2″', af: 1 / 2 * MM, headH: 7 / 32 * MM, p: MM / 9 },
+  { id: '3/8', d: 0.375 * MM, label: '3/8″', wrench: '9/16″', af: 9 / 16 * MM, headH: 1 / 4 * MM, p: MM / 7 },
+  { id: '1/2', d: 0.5 * MM, label: '1/2″', wrench: '3/4″', af: 3 / 4 * MM, headH: 11 / 32 * MM, p: MM / 6 },
+  { id: '6', d: 6, label: '6 mm', wrench: '10 mm', metric: true, af: 10, headH: 4, p: 2.5 },
+  { id: '8', d: 8, label: '8 mm', wrench: '13 mm', metric: true, af: 13, headH: 5.5, p: 3 },
+  { id: '10', d: 10, label: '10 mm', wrench: '17 mm', metric: true, af: 17, headH: 7, p: 4 },
+  { id: '12', d: 12, label: '12 mm', wrench: '19 mm', metric: true, af: 19, headH: 8, p: 4.5 },
 ];
 export const LAG_LEAD = { softwood: [0.4, 0.6, 0.7], hardwood: [0.65, 0.75, 0.85] };
 
 // ---------- Sheet-metal screws ----------
 // Type A and AB tapping screws with their ISO 1478 names. sheet is the drilled pilot in steel or aluminium
 // sheet from ASME B18.6.4: [thinnest, typical (0.030″ sheet), thickest] in inches. hexIn is the nut driver
-// for a hex washer head.
+// for a hex washer head. tpi is the Type AB thread count, used to draw one on the gauge.
 export const SHEET_SCREWS = [
-  { g: 4, d: 0.112, st: 'ST2.9', sheet: [0.086, 0.094, 0.098], ph: 1, hexIn: null },
-  { g: 6, d: 0.138, st: 'ST3.5', sheet: [0.104, 0.104, 0.106], ph: 2, hexIn: 1 / 4 },
-  { g: 8, d: 0.164, st: 'ST4.2', sheet: [0.125, 0.125, 0.128], ph: 2, hexIn: 1 / 4 },
-  { g: 10, d: 0.190, st: 'ST4.8', sheet: [0.136, 0.136, 0.149], ph: 2, hexIn: 5 / 16 },
-  { g: 12, d: 0.216, st: 'ST5.5', sheet: [0.161, 0.161, 0.161], ph: 3, hexIn: 5 / 16 },
-  { g: 14, d: 0.250, st: 'ST6.3', sheet: [0.185, 0.189, 0.196], ph: 3, hexIn: 3 / 8 },
+  { g: 4, d: 0.112, st: 'ST2.9', sheet: [0.086, 0.094, 0.098], ph: 1, hexIn: null, tpi: 24 },
+  { g: 6, d: 0.138, st: 'ST3.5', sheet: [0.104, 0.104, 0.106], ph: 2, hexIn: 1 / 4, tpi: 20 },
+  { g: 8, d: 0.164, st: 'ST4.2', sheet: [0.125, 0.125, 0.128], ph: 2, hexIn: 1 / 4, tpi: 18 },
+  { g: 10, d: 0.190, st: 'ST4.8', sheet: [0.136, 0.136, 0.149], ph: 2, hexIn: 5 / 16, tpi: 16 },
+  { g: 12, d: 0.216, st: 'ST5.5', sheet: [0.161, 0.161, 0.161], ph: 3, hexIn: 5 / 16, tpi: 14 },
+  { g: 14, d: 0.250, st: 'ST6.3', sheet: [0.185, 0.189, 0.196], ph: 3, hexIn: 3 / 8, tpi: 14 },
 ];
 
 // ---------- Heat-set inserts for printed parts ----------

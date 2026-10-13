@@ -1,23 +1,27 @@
 // The screw gauge: calibrate the screen against a bank card, lay a screw on the glass and slide two jaws
-// to its threads and its length, hold its threads against true-size combs, and it names itself.
+// to its threads and its length, hold its threads against true-size combs, and it names itself, drawn at
+// true size where it lay so the real one can be laid back on its picture.
 import { store } from '../store.js';
 import { CARD, plausible, guessPxPerMm, threadCandidates, combsFor, threadOnComb, tenThreads, expectedMajor, nearTwin,
-  gaugeFor, bitsNear, snapLength, screwName } from '../identify.js';
+  twinCall, gaugeFor, bitsNear, bitCandidates, snapLength, screwName, screwShape } from '../identify.js';
 import { holesFor, chooseBit } from '../holes.js';
 import * as FS from '../fasteners.js';
 import { fullName, pitchText } from '../threads.js';
-import { MM, decIn, mmText, fracText } from '../units.js';
-import { pickHash } from './holes.js';
+import { setById } from '../drills.js';
+import { MM, decIn, mmText, fracText, fixed } from '../units.js';
+import { pickHash, finishOf } from './holes.js';
 import { bitSheet } from './index.js';
-import { headIcon, typeIcon } from '../draw.js';
-import { $, esc, bitHTML, bitSizes, offWords, fracify, toast, ICON } from '../ui.js';
+import { headIcon, typeIcon, screwOnGlass, bitOnGlass } from '../draw.js';
+import { $, esc, bitHTML, bitSizes, fracify, toast, ICON } from '../ui.js';
 
 const n = x => +x.toFixed(2);
 const STEPS = [['cal', 'Card'], ['measure', 'Measure'], ['threads', 'Threads'], ['name', 'Name']];
+const LONGEST = 160; // mm: the − and + go this far, past the glass, for a screw longer than the screen
 
 export function renderGauge(main, { calibrate = false } = {}) {
   const saved = store.screen();
   const coarse = matchMedia('(pointer: coarse)').matches;
+  const phone = coarse && Math.min(screen.width, screen.height) < 600;
   const st = {
     step: calibrate || !saved?.same ? 'cal' : 'measure',
     k: saved?.pxPerMm || guessPxPerMm({ coarse, shortSide: Math.min(screen.width, screen.height) }),
@@ -26,6 +30,7 @@ export function renderGauge(main, { calibrate = false } = {}) {
     tip: 'blunt',           // blunt (machine screw or bolt) or pointed (wood, sheet-metal or lag)
     dia: 6.2, len: 25.4,    // mm
     more: false, comb: null, thread: null, head: null, kind: 'wood',
+    tucked: false,          // the panel tucked away, for a screw longer than the glass
   };
   const recal = !!saved && !saved.same;
 
@@ -41,7 +46,8 @@ export function renderGauge(main, { calibrate = false } = {}) {
         <ol class="g-steps" aria-label="Steps"></ol>
         <span class="g-zoom" id="gZoom" hidden>Zoomed in: pinch out so sizes are true</span>
       </div>
-      <div class="g-field" id="gField"><svg id="gSvg" aria-hidden="true"></svg><div class="g-over" id="gOver"></div></div>
+      <div class="g-field" id="gField"><svg id="gSvg" aria-hidden="true"></svg><div class="g-over" id="gOver"></div>
+        <p class="g-turn" id="gTurn" hidden>Turn your phone upright: the gauge needs the long side of the screen.</p></div>
       <div class="g-panel" id="gPanel"></div>
     </div>`;
   const gauge = $('#gauge', main), field = $('#gField', main), svg = $('#gSvg', main), over = $('#gOver', main), panel = $('#gPanel', main);
@@ -65,6 +71,8 @@ export function renderGauge(main, { calibrate = false } = {}) {
     drawSteps();
     gauge.dataset.step = st.step;
     over.innerHTML = '';
+    // On its side a phone has too little glass to measure on.
+    $('#gTurn', gauge).hidden = !(phone && innerWidth > innerHeight && st.step !== 'name');
     if (st.step === 'cal') drawCal();
     else if (st.step === 'measure') drawMeasure();
     else if (st.step === 'threads') drawThreads();
@@ -95,21 +103,22 @@ export function renderGauge(main, { calibrate = false } = {}) {
     svg.innerHTML = s;
   }
   function drawCalPanel() {
-    const fits = st.calEdge === 'long' ? (corner().y0 + CARD.long * st.k + 30 < field.clientHeight) : true;
+    const long = st.calEdge === 'long';
+    const fits = 14 + CARD.long * st.k + 30 < field.clientHeight; // the card lengthways, on this screen
     panel.innerHTML = `
       ${recal ? '<p class="g-warn">This screen or its zoom has changed since you last calibrated, so do it once more.</p>' : ''}
-      <p class="g-say">${st.calEdge === 'long'
+      <p class="g-say">${long
         ? 'Lay a bank card on the glass, long side down the screen, tucked into the corner. Drag the red line to the card’s far end.'
         : 'Lay a bank card on the glass, tucked into the corner under the top line. Drag the red line to the card’s right edge.'}</p>
       <div class="g-row">
-        <button type="button" class="g-nudge" data-nudge="-1" aria-label="A hair shorter">${ICON.minus}</button>
-        <span class="g-read"><b>${st.k.toFixed(2)}</b> px per mm</span>
-        <button type="button" class="g-nudge" data-nudge="1" aria-label="A hair longer">${ICON.plus}</button>
+        <button type="button" class="g-nudge" data-nudge="-1" aria-label="Move the line a pixel ${long ? 'up' : 'left'}">${ICON.minus}</button>
+        <span class="g-read"><b>${st.k.toFixed(2)}</b><small>pixels to the mm</small></span>
+        <button type="button" class="g-nudge" data-nudge="1" aria-label="Move the line a pixel ${long ? 'down' : 'right'}">${ICON.plus}</button>
         <button type="button" class="btn primary g-next" data-go="measure">That’s it</button>
       </div>
-      <p class="g-small">Any card the size of a bank card works: they’re all ${CARD.long.toFixed(2)} × ${CARD.short.toFixed(2)} mm. ${st.calEdge === 'long'
+      <p class="g-small">Any card the size of a bank card works: they’re all ${CARD.long.toFixed(2)} × ${CARD.short.toFixed(2)} mm. ${long
         ? `${fits ? 'Card too long for the screen?' : 'The card won’t fit this screen lengthways:'} <button type="button" class="link-btn" data-edge="short">Measure across it instead</button>`
-        : '<button type="button" class="link-btn" data-edge="long">Measure its long side instead</button> (more exact)'}</p>`;
+        : fits ? '<button type="button" class="link-btn" data-edge="long">Measure its long side instead</button> (more exact)' : ''}</p>`;
   }
 
   // Step 2: the jaws. The panel goes first: its height decides how much glass is left to draw on.
@@ -134,7 +143,7 @@ export function renderGauge(main, { calibrate = false } = {}) {
       if (mm % 10 === 0) lbl += `<text x="${x}" y="${y0 - 13}" text-anchor="middle" class="g-num">${mm}</text>`;
     }
     s += `<path d="${t}" class="tick"/>${lbl}`;
-    s += `<rect x="${x0}" y="${y0}" width="${n(st.dia * k)}" height="${st.what === 'bit' ? H - y0 : n(st.len * k)}" class="g-box"/>`;
+    s += `<rect x="${x0}" y="${y0}" width="${n(st.dia * k)}" height="${st.what === 'bit' ? H - y0 : n(Math.max(0, Math.min(st.len * k, H - y0)))}" class="g-box"/>`;
     s += `<path d="M${n(xd)} ${y0 - 18}V${H}" class="jaw"/>`;
     s += grip(xd, H - 30, 'h');
     if (st.what === 'screw') {
@@ -147,11 +156,23 @@ export function renderGauge(main, { calibrate = false } = {}) {
   }
 
   function drawMeasurePanel() {
+    const next = st.what === 'bit' || st.tip === 'pointed' ? 'name' : 'threads';
+    const nextBtn = `<button type="button" class="btn primary g-next" data-go="${next}">${next === 'name' ? 'Name it' : 'Threads'} ${ICON.arrow}</button>`;
+    gauge.classList.toggle('tucked', st.tucked);
+    if (st.tucked) {
+      // Tucked away: just the two sizes, so the glass runs nearly to the bottom of the screen.
+      panel.innerHTML = `<div class="g-row g-end g-tuck">
+        <p class="g-mini"><b>${mmText(st.dia, 2)}</b> mm across${st.what === 'screw' ? ` · <b>${mmText(st.len, 1)}</b> mm long` : ''}</p>
+        <button type="button" class="btn small" data-tuck>Show all</button>${nextBtn}</div>`;
+      return;
+    }
     const cands = threadCandidates(st.dia).slice(0, 3).map(c => c.thread);
     const sizes = [...new Set(cands.map(t => t.system === 'inch' ? t.sizeLabel : t.size))];
     const could = st.what === 'bit'
       ? `Nearest: ${bitsNear(st.dia, 3).map(x => esc(x.bit.name)).join(', ')}`
       : st.tip === 'pointed' ? `Could be a ${esc(gaugeFor(st.dia, 'wood').label)} screw` : sizes.length ? `Could be ${fracify(sizes.join(' or '))}` : 'Off the end of the tables';
+    // Run out of glass for a long screw? The panel can tuck itself away.
+    const atEnd = st.what === 'screw' && st.len >= maxLen() - 1;
     panel.innerHTML = `
       <div class="g-row g-opts">
         <div class="seg" role="radiogroup" aria-label="What it is">
@@ -175,9 +196,10 @@ export function renderGauge(main, { calibrate = false } = {}) {
         <span class="g-read"><b>${mmText(st.len, 1)}</b> mm <small>${fracText(st.len / MM, 16)}″</small></span>
         <button type="button" class="g-nudge" data-l="0.5" aria-label="Longer">${ICON.plus}</button>
       </div>` : ''}
+      ${atEnd ? '<p class="g-small">Longer than the glass? <button type="button" class="link-btn" data-tuck>Tuck this panel away</button> for more.</p>' : ''}
       <div class="g-row g-end">
         <p class="g-could">${could}</p>
-        <button type="button" class="btn primary g-next" data-go="${st.what === 'bit' || st.tip === 'pointed' ? 'name' : 'threads'}">${st.what === 'bit' || st.tip === 'pointed' ? 'Name it' : 'Threads'} ${ICON.arrow}</button>
+        ${nextBtn}
       </div>`;
   }
 
@@ -201,11 +223,12 @@ export function renderGauge(main, { calibrate = false } = {}) {
       const t = threadOnComb(c, st.dia);
       s += `<path d="${teeth}" class="comb"/>`;
       // Number the notches under the comb: 0, 5 and 10. By the tenth, close pitches have parted company.
+      // On a fine comb the 5 would crowd the 10, so it keeps its tick and loses its number.
       for (const i of [0, 5, 10]) {
         if (i > count) continue;
         const x = n(x0 + (i + 0.5) * p);
         s += `<path d="M${x} ${y + band + 2}v${i === 5 ? 4 : 7}" class="comb-mark"/>`;
-        if (i) s += `<text x="${x}" y="${y + band + 19}" text-anchor="middle" class="comb-ten">${i}</text>`;
+        if (i === 10 || (i === 5 && 5 * p >= 24)) s += `<text x="${x}" y="${y + band + 19}" text-anchor="middle" class="comb-ten">${i}</text>`;
       }
       over.insertAdjacentHTML('beforeend', `<button type="button" class="comb-btn${on ? ' on' : ''}" data-comb="${c.key}" style="top:${y - 28}px;height:${band + 54}px" aria-pressed="${on}">
         <span><b>${fracify(t.system === 'inch' ? t.label : fullName(t))}</b> · ${esc(c.label)}${c.threads.length > 1 ? ` <small>(${c.threads.filter(x => x !== t).map(x => esc(x.label)).join(', ')} too)</small>` : ''}</span>
@@ -216,14 +239,18 @@ export function renderGauge(main, { calibrate = false } = {}) {
   }
   function drawThreadsPanel(combs) {
     const pick = combs.find(c => c.key === st.comb);
-    // Some pitches are too close for any comb (M5 × 0.8 and #10-32, M2.5 and #2-56): only the size tells them apart.
+    // Some pitches are too close for any comb (M5 × 0.8 and #10-32, M2.5 and #2-56): only the size tells them
+    // apart, so say which one the size points to.
     let twin = '';
     if (pick) {
       const other = nearTwin(combs, pick);
       if (other) {
         const a = threadOnComb(pick, st.dia), b = threadOnComb(other, st.dia);
-        const nm = t => `${t.system === 'metric' ? 'an' : 'a'} ${esc(t.system === 'inch' ? t.label : t.size)}`; // an M5, a #10-32
-        twin = `<p class="g-warn">${esc(fullName(a))} and ${esc(fullName(b))} have all but the same pitch, so go by the size: ${nm(a)} measures about ${expectedMajor(a).toFixed(2)} mm across its threads, ${nm(b)} about ${expectedMajor(b).toFixed(2)}. You measured ${st.dia.toFixed(2)}.</p>`;
+        const call = twinCall(a, b, st.dia);
+        const nm = t => `${t.system === 'metric' ? 'an' : 'a'} ${esc(shortName(t))}`; // an M5, a #10-32
+        twin = `<p class="g-warn">${esc(fullName(a))} and ${esc(fullName(b))} have all but the same pitch, so the size decides: ${nm(a)} measures about ${fixed(expectedMajor(a), 2)} mm across its threads, ${nm(b)} about ${fixed(expectedMajor(b), 2)}. You measured ${fixed(st.dia, 2)}: ${call.sure
+          ? `<b>that’s the ${esc(shortName(call.thread))}</b>.`
+          : `<b>a shade nearer the ${esc(shortName(call.thread))}</b>. A nut you know will settle it.`}</p>`;
       }
     }
     panel.innerHTML = `
@@ -236,68 +263,132 @@ export function renderGauge(main, { calibrate = false } = {}) {
       </div>`;
   }
 
-  // Step 4: the name, its holes and its tools.
+  // The thread a comb and a size point to. Twins no comb can part go by the size.
+  function namedThread() {
+    const combs = combsFor(st.dia, { more: st.more });
+    const c = combs.find(x => x.key === st.comb) || combs[0];
+    const t = threadOnComb(c, st.dia);
+    const twin = nearTwin(combs, c);
+    if (!twin) return { t };
+    const other = threadOnComb(twin, st.dia);
+    const call = twinCall(t, other, st.dia);
+    return { t: call.thread, twin: call.thread === t ? other : t, sure: call.sure };
+  }
+
+  // Step 4: the name, drawn at true size where it lay, then its holes and its tools.
   function drawName() {
-    let html = '';
-    if (st.what === 'bit') {
-      const near = bitsNear(st.dia, 4);
-      const best = near[0];
-      html = `<p class="g-kicker">That bit is</p>
-        <h2 class="gauge-name">${bitHTML(best.bit)}</h2>
-        <p class="g-facts">${esc(bitSizes(best.bit))}: ${esc(offWords(best.diff, best.bit.metric))} from the ${mmText(st.dia, 2)} mm you measured.</p>
-        <p class="g-facts">Or ${near.slice(1).map(x => `<button type="button" class="bit-link" data-bit="${x.bit.id}">${bitHTML(x.bit)}</button> (${esc(offWords(x.diff, x.bit.metric))})`).join(', ')}.</p>
-        <div class="row-btns"><button type="button" class="btn primary" data-bit="${best.bit.id}">What it’s for</button>
-        <button type="button" class="btn" data-go="measure">Measure another</button></div>`;
-    } else {
-      const pointed = st.tip === 'pointed';
-      let name, pick, facts;
-      if (pointed) {
-        const g = gaugeFor(st.dia, st.kind);
-        const len = snapLength(st.len, st.kind === 'lag' && g.metric);
-        name = screwName({ kind: st.kind, gauge: g, len });
-        pick = { type: st.kind === 'lag' ? 'lag' : st.kind === 'sheet' ? 'sheet' : 'wood', size: g.id };
-        facts = `${mmText(st.dia, 2)} mm across the threads${g.st ? ` (${g.st})` : ''}, ${lenWords(st.len, len)}.`;
-      } else {
-        const combs = combsFor(st.dia, { more: st.more });
-        const c = combs.find(x => x.key === st.comb) || combs[0];
-        const t = threadOnComb(c, st.dia);
-        const heads = FS.headsFor(t);
-        if (st.head && !heads.includes(st.head)) st.head = null;
-        const len = snapLength(st.len, t.system === 'metric');
-        name = screwName({ kind: 'machine', thread: t, len, head: st.head });
-        pick = { type: 'machine', size: t.id, ...(st.head ? { head: st.head } : {}) };
-        facts = `${t.system === 'inch' ? `${esc(t.sizeLabel)} ${esc(t.cls)}` : `M${t.d}${t.cls === 'fine' ? ' fine' : ''}`}: ${esc(pitchText(t))}, ${mmText(st.dia, 2)} mm across the threads, ${lenWords(st.len, len)}.`;
-        st.thread = t;
-      }
-      const r = holesFor({ ...pick, material: pointed ? (st.kind === 'sheet' ? 'steel' : 'hardwood') : 'aluminium' });
-      const owned = store.owned();
-      const list = r.holes.filter(h => !h.cone && h.key !== 'plug' && h.key !== 'straight').slice(0, 4).map(h => {
-        const c = chooseBit(h, owned, r.pick.material);
-        const b = c.ok ? c.bit : c.usual;
-        return `<li><span>${esc(h.name)}</span><span class="g-bit"><b>${b ? bitHTML(b) : '—'}</b>${c.ok ? '' : '<small>not in your bits</small>'}</span></li>`;
-      }).join('');
-      html = `<p class="g-kicker">It’s a</p>
-        <h2 class="gauge-name">${fracName(name)}</h2>
-        <p class="g-facts">${facts}</p>
-        ${pointed ? `<div class="chips g-kinds" role="radiogroup" aria-label="Kind">${[['wood', 'Wood screw'], ['sheet', 'Sheet-metal screw'], ['lag', 'Lag screw']].map(([k, label]) =>
-          `<button type="button" role="radio" class="chip" data-kind="${k}" aria-checked="${st.kind === k}">${typeIcon(k === 'sheet' ? 'sheet' : k, 22)}${label}</button>`).join('')}</div>`
-          : `<p class="g-ask">${st.head ? 'Head' : 'What’s its head like?'}</p><div class="chips g-heads" role="radiogroup" aria-label="Head">${FS.headsFor(st.thread).map(h =>
-            `<button type="button" role="radio" class="chip head" data-head="${h}" aria-checked="${st.head === h}">${headIcon(h)}${esc(st.thread.system === 'metric' && h === 'flat' ? 'Countersunk' : FS.HEADS[h].short)}</button>`).join('')}</div>`}
-        <ul class="g-holes">${list}</ul>
-        <ul class="g-tools">${r.tools.filter(t => t.what !== 'Washer').map(t => `<li><span>${esc(t.what)}</span><b>${fracify(t.text)}</b></li>`).join('')}</ul>
-        <div class="row-btns">
-          <a class="btn primary" href="${pickHash(normal(pick, pointed))}">All its holes ${ICON.arrow}</a>
-          <button type="button" class="btn" data-go="measure">Measure another</button>
-        </div>`;
-    }
-    over.innerHTML = `<div class="g-result">${html}</div>`;
+    const k = st.k, { x0, y0 } = corner();
+    let drawing, label, details, reach;
+    if (st.what === 'bit') ({ drawing, label, details } = nameBit(k, x0, y0));
+    else ({ drawing, label, details, reach } = nameScrew(k, x0, y0));
+    // The name beside the drawing (clear of the widest head it might get), or under it when the screen's
+    // too narrow for both.
+    let lx = Math.ceil(Math.max(drawing.right, reach || 0) + 18);
+    const below = W - lx - 16 < 170;
+    if (below) lx = 16;
+    const glassH = Math.ceil(drawing.bottom + 24);
+    const fenceTo = below ? W : lx - 12;
+    over.innerHTML = `<div class="g-result" style="--lx:${lx}px">
+      <div class="g-glass" style="min-height:${glassH}px">
+        <svg class="g-draw" width="${W}" height="${glassH}" aria-hidden="true"><path class="rail"/><path class="fence faint"/>${drawing.svg}</svg>
+        <div class="g-label" style="margin-left:${lx}px;padding-top:${below ? glassH : Math.max(12, y0 - 6)}px">${label}
+          <p class="g-lay">Lay it on its drawing: the two should match.</p></div>
+      </div>
+      <div class="g-details">${details}</div>
+    </div>`;
+    // The fences run the whole height of the glass, which the name beside the drawing may have stretched.
+    const g = $('.g-glass', over), d = $('.g-draw', over), h = Math.max(glassH, g.offsetHeight);
+    d.setAttribute('height', h);
+    $('.rail', d).setAttribute('d', `M0 0H${W}V${y0}H${x0}V${h}H0Z`);
+    $('.fence', d).setAttribute('d', `M${x0} ${y0}H${fenceTo}M${x0} ${y0}V${h}`);
     panel.innerHTML = '';
   }
 
+  function nameBit(k, x0, y0) {
+    const owned = store.owned();
+    const gone = store.missingInOwned();
+    const missing = new Set(gone.map(m => m.slice(m.indexOf(':') + 1)));
+    const cands = bitCandidates(st.dia, 1 / k, { owned, missing });
+    const b = cands[0].bit;
+    const others = cands.slice(1).sort((x, y) => Math.abs(x.diff) - Math.abs(y.diff)).slice(0, 3);
+    const link = x => `<button type="button" class="bit-link" data-bit="${x.bit.id}">${bitHTML(x.bit)}</button>`;
+    const list = xs => (xs.length > 1 ? `${xs.slice(0, -1).map(link).join(', ')} or ${link(xs.at(-1))}` : link(xs[0]));
+    const goneFrom = gone.find(m => m.endsWith(`:${b.id}`));
+    const set = goneFrom && setById(goneFrom.slice(0, goneFrom.indexOf(':')));
+    const own = set ? `<p class="g-own">Your ${esc(b.name)} went missing from the ${esc(set.name.toLowerCase())} case. Is this it? <button type="button" class="link-btn" data-putback="${set.id}" data-id="${b.id}">Put it back</button></p>`
+      : owned.has(b.id) ? `<p class="g-own mine">${ICON.ok} In your bits.</p>`
+        : `<p class="g-own">Not in your bits. <button type="button" class="link-btn" data-addloose="${b.id}">Add it as a loose bit</button></p>`;
+    return {
+      drawing: bitOnGlass(b, { k, x0, y0, finish: finishOf(b), shank: 14, flutes: 22 }),
+      label: `<p class="g-kicker">That bit is</p><h2 class="gauge-name">${bitHTML(b)}</h2><p class="g-facts">${esc(bitSizes(b))}</p>
+        <p class="g-facts">You measured ${mmText(st.dia, 2)} mm. ${others.length
+          ? `A pixel on this screen is ${mmText(1 / k, 2)} mm, so it could also be ${list(others)}.`
+          : 'Nothing else is within a pixel of that.'}</p>
+        ${own}`,
+      details: `<div class="row-btns"><button type="button" class="btn primary" data-bit="${b.id}">What it’s for</button>
+        <button type="button" class="btn" data-go="measure">Measure another</button></div>`,
+    };
+  }
+
+  function nameScrew(k, x0, y0) {
+    const pointed = st.tip === 'pointed';
+    let name, pick, facts, shape, twinNote = '';
+    if (pointed) {
+      const g = gaugeFor(st.dia, st.kind);
+      const len = snapLength(st.len, st.kind === 'lag' && g.metric);
+      name = screwName({ kind: st.kind, gauge: g, len });
+      pick = { type: st.kind === 'lag' ? 'lag' : st.kind === 'sheet' ? 'sheet' : 'wood', size: g.id };
+      facts = `You measured ${mmText(st.dia, 2)} mm across the threads${g.st ? ` (${esc(g.st)} in metric)` : ''}, ${lenWords(st.len, len)}.`;
+      shape = screwShape({ kind: st.kind, gauge: g, len });
+    } else {
+      const { t, twin, sure } = namedThread();
+      const heads = FS.headsFor(t);
+      if (st.head && !heads.includes(st.head)) st.head = null;
+      const len = snapLength(st.len, t.system === 'metric');
+      name = screwName({ kind: 'machine', thread: t, len, head: st.head });
+      pick = { type: 'machine', size: t.id, ...(st.head ? { head: st.head } : {}) };
+      facts = `${t.system === 'inch' ? `${esc(t.sizeLabel)} ${esc(t.cls)}` : `M${t.d}${t.cls === 'fine' ? ' fine' : ''}`}, ${esc(pitchText(t))}. You measured ${mmText(st.dia, 2)} mm across the threads, ${lenWords(st.len, len)}.`;
+      if (twin) twinNote = `<p class="g-twin">${esc(fullName(twin))} has all but the same pitch, and the size you measured ${sure ? 'says' : 'leans to'} ${esc(shortName(t))}${sure ? '' : ': a nut you know will settle it'}.</p>`;
+      st.thread = t;
+      shape = screwShape({ kind: 'machine', thread: t, len, head: st.head });
+    }
+    const r = holesFor({ ...pick, material: pointed ? (st.kind === 'sheet' ? 'steel' : 'hardwood') : 'aluminium' });
+    const owned = store.owned();
+    const holes = r.holes.filter(h => !h.cone && h.key !== 'plug' && h.key !== 'straight').slice(0, 4).map(h => {
+      const c = chooseBit(h, owned, r.pick.material);
+      const b = c.ok ? c.bit : c.usual;
+      const note = c.near ? `a hair ${c.near}` : c.ok ? '' : 'not in your bits';
+      return `<li><span>${esc(h.name)}</span><span class="g-bit"><b>${b ? bitHTML(b) : '—'}</b>${note ? `<small>${note}</small>` : ''}</span></li>`;
+    }).join('');
+    const chooser = pointed
+      ? `<p class="g-ask">Which kind is it?</p><div class="chips g-kinds" role="radiogroup" aria-label="Kind">${[['wood', 'Wood screw'], ['sheet', 'Sheet-metal screw'], ['lag', 'Lag screw']].map(([kd, lbl]) =>
+        `<button type="button" role="radio" class="chip" data-kind="${kd}" aria-checked="${st.kind === kd}">${typeIcon(kd, 22)}${lbl}</button>`).join('')}</div>`
+      : `<p class="g-ask">${st.head ? 'Head' : 'What’s its head like?'}</p><div class="chips g-heads" role="radiogroup" aria-label="Head">${FS.headsFor(st.thread).map(h =>
+        `<button type="button" role="radio" class="chip head" data-head="${h}" aria-checked="${st.head === h}">${headIcon(h)}${esc(st.thread.system === 'metric' && h === 'flat' ? 'Countersunk' : FS.HEADS[h].short)}</button>`).join('')}</div>`;
+    // Keep the name clear of the widest head this thread comes with, so picking one doesn't shove it along.
+    const reach = pointed ? 0 : x0 + shape.d / 2 * k + Math.max(...FS.headsFor(st.thread).map(h => {
+      const hs = FS.headShape(st.thread, h);
+      return (hs.kind === 'hex' ? hs.af / Math.sqrt(3) : hs.dia / 2) * k;
+    }));
+    return {
+      reach,
+      drawing: screwOnGlass(shape, { k, x0, y0 }),
+      label: `<p class="g-kicker">It’s ${/^(M|8\b|11\b|18\b)/.test(name) ? 'an' : 'a'}</p><h2 class="gauge-name">${fracName(name)}</h2><p class="g-facts">${facts}</p>${twinNote}`,
+      details: `${chooser}
+        <section class="g-list" aria-label="Holes"><h3>Holes</h3><ul class="g-holes">${holes}</ul></section>
+        <section class="g-list" aria-label="Tools"><h3>Tools</h3><ul class="g-tools">${r.tools.filter(t => t.what !== 'Washer').map(t => `<li><span>${esc(t.what)}</span><b>${fracify(t.text)}</b></li>`).join('')}</ul></section>
+        <div class="row-btns">
+          <a class="btn primary" href="${pickHash(normal(pick, pointed))}">All its holes ${ICON.arrow}</a>
+          <button type="button" class="btn" data-go="measure">Measure another</button>
+        </div>`,
+    };
+  }
+
+  const shortName = t => (t.system === 'inch' ? t.label : t.size); // #10-32, M5
   const normal = (pick, pointed) => ({ ...pick, material: pointed ? (pick.type === 'sheet' ? 'steel' : 'hardwood') : (store.pick?.material && pick.type === store.pick.type ? store.pick.material : 'aluminium') });
   const lenWords = (mm, len) => `${mmText(mm, 1)} mm long${len.standard ? '' : ' (not a usual length)'}`;
-  // "1/4-20 × 1-1/2 hex bolt" with the length's fraction set properly.
-  const fracName = name => esc(name).replace(/× (\d+)-(\d+)\/(\d+)/, '× $1<span class="sp">-</span><span class="fr">$2/$3</span>').replace(/× (\d+)\/(\d+)(?!-)/, '× <span class="fr">$1/$2</span>');
+  // "1/4-20 × 1-1/2 hex bolt" with the length's fraction set properly, and kept on one line (1½, never 1 / ½).
+  const fracName = name => esc(name).replace(/× (\d+)-(\d+)\/(\d+)/, '× <span class="nw">$1<span class="sp">-</span><span class="fr">$2/$3</span></span>').replace(/× (\d+)\/(\d+)(?!-)/, '× <span class="fr">$1/$2</span>');
 
   function grip(x, y, dir) {
     const arrows = dir === 'v' ? `M${x} ${n(y - 9)}l-4 5h8zM${x} ${n(y + 9)}l-4 -5h8z` : `M${n(x - 9)} ${y}l5 -4v8zM${n(x + 9)} ${y}l-5 -4v8z`;
@@ -330,7 +421,7 @@ export function renderGauge(main, { calibrate = false } = {}) {
       else if (st.what === 'screw' && x > x0 && y > yl - 8 && y < yl + 44) what = 'len';
     }
     if (!what) return;
-    drag = { what, x, y, k: st.k, dia: st.dia, len: st.len, id: e.pointerId };
+    drag = { what, x, y, k: st.k, dia: st.dia, len: st.len, id: e.pointerId, atEnd: false };
     field.setPointerCapture(e.pointerId);
     e.preventDefault();
   });
@@ -341,7 +432,7 @@ export function renderGauge(main, { calibrate = false } = {}) {
     if (drag.what === 'cal-long') st.k = clampK((drag.k * CARD.long + dy) / CARD.long);
     else if (drag.what === 'cal-short') st.k = clampK((drag.k * CARD.short + dx) / CARD.short);
     else if (drag.what === 'dia') st.dia = clamp(drag.dia + dx / st.k, 0.5, maxDia());
-    else st.len = clamp(drag.len + dy / st.k, 1, maxLen());
+    else st.len = clamp(drag.len + dy / st.k, 1, Math.max(maxLen(), drag.len));
     st.step === 'cal' ? drawCal() : drawMeasure();
   });
   const end = e => { if (drag && e.pointerId === drag.id) drag = null; };
@@ -357,19 +448,26 @@ export function renderGauge(main, { calibrate = false } = {}) {
     const b = e.target.closest('button, a');
     if (!b) return;
     if (b.dataset.nudge) {
-      // A quarter of a pixel over the card's length, or across it.
+      // A whole pixel over the card's length, or across it: enough to see the line move.
       const edge = st.calEdge === 'long' ? CARD.long : CARD.short;
-      st.k = clampK(st.k + (+b.dataset.nudge * 0.25) / edge);
+      st.k = clampK(st.k + +b.dataset.nudge / edge);
       drawCal();
-    } else if (b.dataset.edge) { st.calEdge = b.dataset.edge; drawCal(); }
+    } else if (b.dataset.edge) { st.calEdge = b.dataset.edge; st.edgeChosen = true; drawCal(); }
     else if (b.dataset.d) { st.dia = clamp(st.dia + +b.dataset.d, 0.5, maxDia()); drawMeasure(); }
-    else if (b.dataset.l) { st.len = clamp(st.len + +b.dataset.l, 1, maxLen()); drawMeasure(); }
+    else if (b.dataset.l) { st.len = clamp(st.len + +b.dataset.l, 1, LONGEST); drawMeasure(); }
+    else if (b.hasAttribute('data-tuck')) { st.tucked = !st.tucked; drawMeasure(); }
     else if (b.dataset.what) { st.what = b.dataset.what; drawMeasure(); }
     else if (b.dataset.tip) { st.tip = b.dataset.tip; drawMeasure(); }
     else if (b.dataset.comb) { st.comb = b.dataset.comb; drawThreads(); }
     else if (b.hasAttribute('data-more')) { st.more = !st.more; drawThreads(); }
     else if (b.dataset.head) { st.head = b.dataset.head; drawName(); }
     else if (b.dataset.kind) { st.kind = b.dataset.kind; drawName(); }
+    else if (b.dataset.putback) {
+      const bit = b.dataset.id;
+      store.setMissing(b.dataset.putback, bit, false);
+      toast(`Back in the ${setById(b.dataset.putback).name.toLowerCase()} case`);
+      drawName();
+    } else if (b.dataset.addloose) { store.addLoose(b.dataset.addloose); toast('Added to your bits'); drawName(); }
     else if (b.dataset.bit) bitSheet(b.dataset.bit);
     else if (b.dataset.go) {
       if (st.step === 'cal' && b.dataset.go === 'measure') {
@@ -380,6 +478,7 @@ export function renderGauge(main, { calibrate = false } = {}) {
       if (b.dataset.go === 'threads') { st.comb = combsFor(st.dia)[0]?.key || null; st.more = false; }
       if (b.dataset.go === 'measure' && st.step === 'name') st.head = null;
       st.step = b.dataset.go;
+      if (st.step !== 'measure') gauge.classList.remove('tucked');
       draw();
     }
   });

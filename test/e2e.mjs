@@ -226,6 +226,12 @@ try {
   await page.mouse.move(box.x + box.width - 30, lineY); await page.mouse.down();
   await page.mouse.move(box.x + box.width - 30, target, { steps: 6 }); await page.mouse.up();
   assert.equal(await page.evaluate(() => parseFloat(document.querySelector('.g-read b').textContent)), 6, 'the drag set 6.00 px per mm');
+  // − and + move the line a whole pixel, so the reading changes where you can see it.
+  await page.click('[data-nudge="1"]');
+  assert.equal(await page.evaluate(() => document.querySelector('.g-read b').textContent), '6.01');
+  await page.click('[data-nudge="-1"]');
+  assert.equal(await page.evaluate(() => parseFloat(document.querySelector('.g-read b').textContent)), 6);
+  assert.match(await text(page, '.g-read'), /pixels to the mm/);
   await page.click('[data-go="measure"]');
   await page.waitForSelector('.gauge[data-step="measure"]');
   const scr = await page.evaluate(() => JSON.parse(localStorage.getItem('pilot-hole.screen')));
@@ -251,6 +257,13 @@ try {
   await page.click('[data-head="hex"]');
   assert.equal(await text(page, '.gauge-name'), '1/4-20 × 1 hex bolt');
   assert.match(await text(page, '.g-tools'), /Wrench 7\/16″/);
+  // It's drawn at true size where it lay: an inch (25.4 mm at 6 px to the mm) down from the top fence, under
+  // a hex head 5/32″ tall and 7/16″ across its flats, so as wide as that hex across its corners.
+  const drawn = await page.evaluate(() => { const b = document.querySelector('.g-draw .sg').getBBox(); return { top: b.y, bottom: b.y + b.height, width: b.width }; });
+  const fence = Math.round(34 + 5 * 6);
+  assert.ok(Math.abs(drawn.bottom - (fence + 25.4 * 6)) < 1, `the bolt ends ${drawn.bottom - fence} px below the fence`);
+  assert.ok(Math.abs(drawn.top - (fence - 5 / 32 * 25.4 * 6)) < 1, `its head stands ${fence - drawn.top} px above it`);
+  assert.ok(Math.abs(drawn.width - 7 / 16 * 25.4 * 2 / Math.sqrt(3) * 6) < 1, `its head is ${drawn.width} px across`);
   await page.click('.g-result a.btn.primary');
   await page.waitForSelector('.spec');
   assert.equal(await text(page, '.spec'), '1/4-20 hex bolt into aluminium', 'the Holes screen calls it what the gauge does');
@@ -268,7 +281,23 @@ try {
   await page.mouse.move(f3.x + xd, f3.y + f3.height - 30); await page.mouse.down();
   await page.mouse.move(f3.x + x0 + 3.454 * k, f3.y + f3.height - 30, { steps: 5 }); await page.mouse.up();
   await page.click('[data-go="name"]');
-  assert.equal(await text(page, '.gauge-name'), '#29');
+  // 3.454 mm is a #29 to the hundredth, but a pixel here is 0.17 mm, and the metric case has a 3.5 mm bit.
+  assert.equal(await text(page, '.gauge-name'), '3.5 mm');
+  assert.match(await text(page, '.g-label'), /A pixel on this screen is 0\.17 mm, so it could also be #29/);
+  assert.match(await text(page, '.g-label'), /In your bits\./);
+  assert.ok(await page.locator('.g-draw .sg').count(), 'the bit is drawn where it lay');
+  // A bit gone missing from a case is the likeliest of all, and can go straight back.
+  await page.click('.g-result [data-go="measure"]');
+  await page.waitForSelector('.gauge[data-step="measure"]');
+  const f4 = await page.locator('#gField').boundingBox();
+  await page.mouse.move(f4.x + x0 + 3.454 * k, f4.y + f4.height - 30); await page.mouse.down();
+  await page.mouse.move(f4.x + x0 + 2.78 * k, f4.y + f4.height - 30, { steps: 5 }); await page.mouse.up();
+  await page.click('[data-go="name"]');
+  assert.equal(await text(page, '.gauge-name'), '7/64″');
+  assert.match(await text(page, '.g-own'), /Your 7\/64″ went missing from the fractional case\. Is this it\?/);
+  await page.click('[data-putback]');
+  assert.equal(await page.evaluate(() => window.pilotHole.store.isMissing('frac29', 'f:7/64')), false, 'put back');
+  assert.match(await text(page, '.g-own'), /In your bits\./);
   await page.click('.g-result [data-go="measure"]');
   await page.waitForSelector('.gauge[data-step="measure"]');
   await page.click('.g-close');
@@ -307,6 +336,35 @@ try {
   await small.page.mouse.move(sb.x + 14 + 53.98 * 6.4, sb.y + sb.height - 34, { steps: 6 }); await small.page.mouse.up();
   assert.equal(await small.page.evaluate(() => parseFloat(document.querySelector('.g-read b').textContent)), 6.4, 'the drag across the card set 6.40 px per mm');
   await fits(small.page, 'the gauge on a small phone');
+  await small.page.click('[data-go="measure"]');
+  await small.page.waitForSelector('.gauge[data-step="measure"]');
+  const sk = 6.4, sx0 = Math.round(14 + 7 * sk), sy0 = Math.round(34 + 5 * sk);
+  let sf = await small.page.locator('#gField').boundingBox();
+  // Twins no comb can part go by the size: 4.88 mm on the #10-32 comb is the M5.
+  await small.page.mouse.move(sf.x + sx0 + 6.2 * sk, sf.y + sf.height - 30); await small.page.mouse.down();
+  await small.page.mouse.move(sf.x + sx0 + 4.88 * sk, sf.y + sf.height - 30, { steps: 5 }); await small.page.mouse.up();
+  await small.page.click('[data-go="threads"]');
+  await small.page.locator('.comb-btn', { hasText: '#10-32' }).click();
+  assert.match(await text(small.page, '.g-warn'), /You measured 4\.88: that’s the M5\./);
+  await small.page.click('[data-go="name"]');
+  assert.equal(await text(small.page, '.gauge-name'), 'M5 × 0.8 × 25', 'named by its size, though the #10-32 comb was picked');
+  assert.equal(await small.page.evaluate(() => document.querySelector('.g-kicker').textContent), 'It’s an');
+  // A screw longer than the glass: the panel tucks away and there's room for a 2½″ one.
+  await small.page.click('.g-result [data-go="measure"]');
+  await small.page.waitForSelector('.gauge[data-step="measure"]');
+  sf = await small.page.locator('#gField').boundingBox();
+  await small.page.mouse.move(sf.x + sf.width - 30, sf.y + sy0 + 25.4 * sk); await small.page.mouse.down();
+  await small.page.mouse.move(sf.x + sf.width - 30, sf.y + sf.height - 4, { steps: 8 }); await small.page.mouse.up();
+  await small.page.click('.g-panel [data-tuck]');
+  const tall = await small.page.locator('#gField').boundingBox();
+  assert.ok(tall.height > sf.height + 90, `tucked away, the glass grows from ${sf.height} to ${tall.height} px`);
+  const atLen = await small.page.evaluate(() => parseFloat(document.querySelectorAll('.g-mini b')[1].textContent));
+  await small.page.mouse.move(tall.x + tall.width - 30, tall.y + sy0 + atLen * sk); await small.page.mouse.down();
+  await small.page.mouse.move(tall.x + tall.width - 30, tall.y + sy0 + 63.5 * sk, { steps: 8 }); await small.page.mouse.up();
+  assert.match(await text(small.page, '.g-mini'), /63\.5 mm long/);
+  // On its side, a phone has no room to measure: it says to turn it upright.
+  await small.page.setViewportSize({ width: 667, height: 375 });
+  await small.page.waitForFunction(() => !document.getElementById('gTurn').hidden);
   await small.ctx.close();
 
   // ---------- On a laptop ----------
