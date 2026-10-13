@@ -118,7 +118,8 @@ const BUILD = {
     const name = `${t.label} ${headName}`;
     const mat = p.material, group = FS.materialById(mat).group;
     const holes = [];
-    const tools = machineTools(t, hf, { tap: group !== 'wood' }); // through wood it's a nut, not a tapped hole
+    // Through wood it's a nut, not a tapped hole; into metal or a print, a tapped hole and no nut.
+    const tools = machineTools(t, hf, { tap: group !== 'wood', nut: group === 'wood' });
     const out = { name, title: t.label, sub: headName, diagram: group === 'wood' ? 'bolt' : 'tapped', holes, tools, thread: t };
 
     if (group === 'wood') {
@@ -360,6 +361,10 @@ function nutHole(t, nut) {
     note: `Wide enough for the ${washer} flat washer under the nut. A Forstner bit leaves the flat bottom it sits on. Only if the nut has to sit below the surface.` });
 }
 const FORSTNERS = BITS.filter(b => b.kind === 'forstner').sort((a, b) => a.mm - b.mm);
+
+// Everything a loose machine screw or bolt takes, whatever it ends up going into: the key or wrench for its
+// head (none until the head is known), the wrench for its nut, and the tap for its thread. For the gauge.
+export const screwTools = (t, head) => machineTools(t, head ? FS.headFacts(t, head) : null, { tap: true, nut: true });
 
 // The keys, drivers and wrenches a screw takes, the wrench for its nut, and the tap for its thread.
 // A hex bolt whose nut takes the same wrench gets one line for both.

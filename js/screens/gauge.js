@@ -5,7 +5,7 @@ import { store } from '../store.js';
 import { CARD, plausible, guessPxPerMm, threadCandidates, combsFor, threadOnComb, tenThreads, expectedMajor, nearTwin,
   twinCall, gaugeFor, bitsNear, bitCandidates, snapLength, screwName, screwShape, fitsThread, kindFits, kindReach,
   likelyKind, pastTables } from '../identify.js';
-import { holesFor, chooseBit } from '../holes.js';
+import { holesFor, chooseBit, screwTools } from '../holes.js';
 import * as FS from '../fasteners.js';
 import { fullName, pitchText } from '../threads.js';
 import { setById } from '../drills.js';
@@ -461,6 +461,8 @@ export function renderGauge(main, hash = '') {
       shape = screwShape({ kind: 'machine', thread: t, len, head: st.head });
     }
     const r = holesFor({ ...pick, material: pointed ? (kind === 'sheet' ? 'steel' : 'hardwood') : 'aluminium' });
+    // A loose bolt's tools are everything it takes, its nut and its tap too, not only what a tapped hole needs.
+    const tools = (pointed ? r.tools : screwTools(st.thread, st.head)).filter(t => t.what !== 'Washer');
     const owned = store.owned();
     const holes = r.holes.filter(h => !h.cone && h.key !== 'plug' && h.key !== 'straight').slice(0, 4).map(h => {
       const c = chooseBit(h, owned, r.pick.material);
@@ -487,7 +489,7 @@ export function renderGauge(main, hash = '') {
       label: `<p class="g-kicker">It’s ${an(name)}</p><h2 class="gauge-name">${fracName(name)}</h2><p class="g-facts">${facts}</p>${twinNote}`,
       details: `${chooser}
         <section class="g-list" aria-label="Holes"><h3>Holes</h3><ul class="g-holes">${holes}</ul></section>
-        <section class="g-list" aria-label="Tools"><h3>Tools</h3><ul class="g-tools">${r.tools.filter(t => t.what !== 'Washer').map(t => `<li><span>${esc(t.what)}</span><b>${fracify(t.text)}</b></li>`).join('')}</ul></section>
+        <section class="g-list" aria-label="Tools"><h3>Tools</h3><ul class="g-tools">${tools.map(t => `<li><span>${esc(t.what)}</span><b>${fracify(t.text)}</b></li>`).join('')}</ul></section>
         <div class="row-btns">
           <a class="btn primary" href="${pickHash(normal(pick, pointed))}">All its holes ${ICON.arrow}</a>
           <button type="button" class="btn" data-go="measure">Measure another</button>

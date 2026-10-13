@@ -117,7 +117,8 @@ try {
   assert.equal(await text(page, '.spec'), 'M3 socket head into aluminium');
   assert.equal(await card(page, 'tap').getAttribute('class'), 'hole r-main none');
   assert.match(await text(page, '.hole[data-key="tap"] .nearest'), /3\/32″ 95% thread: too tight, the tap may snap 7\/64″ 34% thread: too loose to hold/);
-  assert.match(await text(page, '.tools'), /Hex key 2\.5 mm Nut 5\.5 mm wrench Tap M3 × 0\.5/);
+  // A tapped hole takes a key and a tap; there's no nut to list.
+  assert.match(await text(page, '.tools'), /Hex key 2\.5 mm Tap M3 × 0\.5$/);
 
   // Tick the metric set in Your bits: now the tap drill is 2.5 mm, a 77% thread.
   await page.click('#bitsBtn');
@@ -332,7 +333,8 @@ try {
   assert.equal(await text(page, '.gauge-name'), '1/4-20 × 1');
   await page.click('[data-head="hex"]');
   assert.equal(await text(page, '.gauge-name'), '1/4-20 × 1 hex bolt');
-  assert.match(await text(page, '.g-tools'), /Wrench 7\/16″/);
+  // A loose bolt's tools are everything it takes: one wrench for its head and its nut, and the tap.
+  assert.equal(await text(page, '.g-tools'), 'Wrench 7/16″, for the head and the nut Tap 1/4-20 UNC');
   // It's drawn at true size where it lay: an inch (25.4 mm at 6 px to the mm) down from the top fence, under
   // a hex head 5/32″ tall and 7/16″ across its flats, so as wide as that hex across its corners.
   const drawn = await page.evaluate(() => { const b = document.querySelector('.g-draw .sg').getBBox(); return { top: b.y, bottom: b.y + b.height, width: b.width }; });

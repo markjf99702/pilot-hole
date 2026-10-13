@@ -6,7 +6,7 @@ import * as U from '../js/units.js';
 import { BITS, SETS, bitById, ownedBits, bySize, nearestInEachKind } from '../js/drills.js';
 import { THREADS, threadById, tapDrillMm, threadPct, TAP_RANGE, fullName } from '../js/threads.js';
 import * as FS from '../js/fasteners.js';
-import { holesFor, chooseBit, usesFor, spotOn, allHoles, normalizePick, missWords } from '../js/holes.js';
+import { holesFor, chooseBit, usesFor, spotOn, allHoles, normalizePick, missWords, screwTools } from '../js/holes.js';
 import * as G from '../js/identify.js';
 
 const close = (a, b, eps = 1e-6, msg) => assert.ok(Math.abs(a - b) < eps, msg || `${a} is not close to ${b}`);
@@ -368,21 +368,35 @@ test('machine screws: heads, keys, counterbores and countersinks', () => {
   const cb = r.holes.find(h => h.key === 'cbore');
   assert.equal(cb.ideal, 6.5);
   assert.match(cb.depth, /3 mm/);
-  assert.deepEqual(r.tools.map(t => t.what), ['Hex key', 'Nut', 'Tap']);
+  // A tapped hole takes a key and a tap, and no nut: there isn't one.
+  assert.deepEqual(r.tools.map(t => t.what), ['Hex key', 'Tap']);
   assert.equal(r.tools[0].text, '2.5 mm');
-  assert.equal(r.tools[1].text, '5.5 mm wrench');
+  for (const material of ['aluminium', 'steel', 'printed']) {
+    for (const t of THREADS) {
+      for (const head of FS.headsFor(t)) {
+        assert.ok(!holesFor({ type: 'machine', size: t.id, material, head }).tools.some(x => x.what === 'Nut' || /the nut/.test(x.text)), `${t.label} ${head} into ${material} lists a nut`);
+      }
+    }
+  }
   const q = holesFor({ type: 'machine', size: '1/4-20', material: 'steel', head: 'socket' });
   assert.equal(q.tools[0].text, '3/16″');
   assert.equal(q.holes.find(h => h.key === 'cbore').usual, 'f:7/16');
-  // A hex bolt whose nut takes the same wrench gets one line for both.
   const hex = holesFor({ type: 'machine', size: 'M10', material: 'steel', head: 'hex' });
-  assert.deepEqual(hex.tools.map(t => `${t.what} ${t.text}`), ['Wrench 16 mm, for the head and the nut (17 mm on older DIN parts)', 'Tap M10 × 1.5']);
+  assert.deepEqual(hex.tools.map(t => `${t.what} ${t.text}`), ['Wrench 16 mm (17 mm on older DIN bolts)', 'Tap M10 × 1.5']);
   assert.equal(hex.name, 'M10 hex bolt');
   const q20 = holesFor({ type: 'machine', size: '1/4-20', material: 'aluminium', head: 'hex' });
   assert.equal(q20.name, '1/4-20 hex bolt', 'the gauge calls it a hex bolt too');
-  assert.deepEqual(q20.tools.map(t => `${t.what} ${t.text}`), ['Wrench 7/16″, for the head and the nut', 'Tap 1/4-20 UNC']);
-  const q716 = holesFor({ type: 'machine', size: '7/16-14', material: 'steel', head: 'hex' });
-  assert.deepEqual(q716.tools.map(t => `${t.what} ${t.text}`), ['Wrench 5/8″', 'Nut 11/16″ wrench', 'Tap 7/16-14 UNC'], 'a 7/16″ nut is bigger than the head');
+  assert.deepEqual(q20.tools.map(t => `${t.what} ${t.text}`), ['Wrench 7/16″', 'Tap 1/4-20 UNC']);
+  // Through wood there is a nut. A hex bolt whose nut takes the same wrench gets one line for both.
+  const tools = p => holesFor({ type: 'machine', material: 'hardwood', ...p }).tools.map(t => `${t.what} ${t.text}`);
+  assert.deepEqual(tools({ size: 'M10', head: 'hex' }), ['Wrench 16 mm, for the head and the nut (17 mm on older DIN parts)']);
+  assert.deepEqual(tools({ size: '1/4-20', head: 'hex' }), ['Wrench 7/16″, for the head and the nut']);
+  assert.deepEqual(tools({ size: '7/16-14', head: 'hex' }), ['Wrench 5/8″', 'Nut 11/16″ wrench'], 'a 7/16″ nut is bigger than the head');
+  assert.deepEqual(tools({ size: 'M3', head: 'socket' }), ['Hex key 2.5 mm', 'Nut 5.5 mm wrench']);
+  // A loose bolt on the gauge: everything it takes, its nut and its tap too, and no key until its head is known.
+  assert.deepEqual(screwTools(threadById('1/4-20'), 'hex').map(t => `${t.what} ${t.text}`), ['Wrench 7/16″, for the head and the nut', 'Tap 1/4-20 UNC']);
+  assert.deepEqual(screwTools(threadById('7/16-14'), 'hex').map(t => `${t.what} ${t.text}`), ['Wrench 5/8″', 'Nut 11/16″ wrench', 'Tap 7/16-14 UNC']);
+  assert.deepEqual(screwTools(threadById('M3'), null).map(t => `${t.what} ${t.text}`), ['Nut 5.5 mm wrench', 'Tap M3 × 0.5']);
   // A bolt through wood takes a nut, not a tap; a heat-set insert takes neither.
   assert.deepEqual(holesFor({ type: 'machine', size: '1/4-20', material: 'hardwood', head: 'hex' }).tools.map(t => t.what), ['Wrench']);
   assert.deepEqual(holesFor({ type: 'heatset', size: 'M3' }).tools.map(t => `${t.what} ${t.text}`),
