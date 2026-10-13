@@ -633,6 +633,8 @@ body.gauge-on .toast { bottom: auto; top: calc(7px + env(safe-area-inset-top)); 
 .g-ask { margin: 14px 0 6px; font-weight: 650; }
 .g-heads, .g-kinds { flex-wrap: wrap; overflow: visible; -webkit-mask: none; mask: none; padding: 0; }
 .g-usual { margin: 0 0 8px; }
+.g-uses { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+.g-none { margin: 18px 0 0; }
 .g-list h3 { margin: 20px 0 4px; font: 800 13px/1 var(--sans); font-stretch: 87.5%; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
 .g-holes, .g-tools { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
 .g-holes li, .g-tools li { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--line); }

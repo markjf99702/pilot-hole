@@ -11,7 +11,7 @@ import { fullName, pitchText } from '../threads.js';
 import { setById } from '../drills.js';
 import { MM, decIn, mmText, fracText, fixed } from '../units.js';
 import { pickHash, finishOf, bitForHole } from './holes.js';
-import { bitSheet } from './index.js';
+import { bitSheet, knownFor } from './index.js';
 import { headIcon, typeIcon, screwOnGlass, bitOnGlass } from '../draw.js';
 import { $, esc, bitHTML, bitSizes, fracify, toast, ICON } from '../ui.js';
 
@@ -421,6 +421,7 @@ export function renderGauge(main, hash = '') {
     const list = xs => (xs.length > 1 ? `${xs.slice(0, -1).map(link).join(', ')} or ${link(xs.at(-1))}` : link(xs[0]));
     const goneFrom = gone.find(m => m.endsWith(`:${b.id}`));
     const set = goneFrom && setById(goneFrom.slice(0, goneFrom.indexOf(':')));
+    const known = knownFor(b.id);
     const own = set ? `<p class="g-own">Your ${esc(b.name)} went missing from the ${esc(set.name.toLowerCase())} case. Is this it? <button type="button" class="link-btn" data-putback="${set.id}" data-id="${b.id}">Put it back</button></p>`
       : owned.has(b.id) ? `<p class="g-own mine">${ICON.ok} In your bits.</p>`
         : `<p class="g-own">Not in your bits. <button type="button" class="link-btn" data-addloose="${b.id}">Add it as a loose bit</button></p>`;
@@ -431,7 +432,10 @@ export function renderGauge(main, hash = '') {
           ? `A pixel on this screen is ${mmText(1 / k, 2)}\u00a0mm, so it could also be ${list(others)}.`
           : 'Nothing else is within a pixel of that.'}</p>
         ${own}`,
-      details: `<div class="row-btns"><button type="button" class="btn primary" data-bit="${b.id}">What it’s for</button>
+      // What it's known for, right under its name: the rows that lead its sheet, which has the rest.
+      details: `${known ? `<section class="g-list" aria-label="What it’s for"><h3>${known.title}</h3><ul class="g-uses">${known.rows}</ul></section>`
+          : '<p class="g-small g-none">Nothing in the tables calls for this size.</p>'}
+        <div class="row-btns">${known ? `<button type="button" class="btn primary" data-bit="${b.id}">Everything it’s for</button>` : ''}
         <button type="button" class="btn" data-go="measure">Measure another</button></div>`,
     };
   }

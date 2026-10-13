@@ -388,6 +388,10 @@ try {
   await page.mouse.move(f4.x + x0 + 2.78 * k, f4.y + f4.height - 30, { steps: 5 }); await page.mouse.up();
   await page.click('[data-go="name"]');
   assert.equal(await text(page, '.gauge-name'), '7/64″');
+  // Under its name, what it's known for: the rows its sheet leads with, each opening that fastener.
+  assert.equal(await page.locator('.g-list h3').first().textContent(), 'Spot on for');
+  assert.match(await text(page, '.g-uses'), /^#6 and #7 wood screws pilot hole, in hardwood, plywood, MDF exact · the usual/);
+  assert.equal(await page.locator('.g-uses .use').count(), 4);
   assert.match(await text(page, '.g-own'), /Your 7\/64″ went missing from the fractional case\. Is this it\?/);
   await page.click('[data-putback]');
   assert.equal(await page.evaluate(() => window.pilotHole.store.isMissing('frac29', 'f:7/64')), false, 'put back');

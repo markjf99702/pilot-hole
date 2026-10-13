@@ -185,6 +185,16 @@ export function bitSheet(bitId, setId, onClose) {
   });
 }
 
+// What a bit is best known for, a few rows of its sheet: what it's spot on for or, failing that, the nearest
+// it's right for. The gauge shows them under a bit it has named; the sheet has the rest.
+export function knownFor(bitId, n = 4) {
+  const spot = mergeRuns(spotOn(bitId));
+  const list = spot.length ? spot
+    : mergeRuns(usesFor(bitId).flatMap(g => g.uses).sort((x, y) => Math.abs(x.diff) - Math.abs(y.diff) || x.order - y.order));
+  if (!list.length) return null;
+  return { title: spot.length ? 'Spot on for' : 'Near enough for', rows: list.slice(0, n).map(u => useRow(u, true)).join('') };
+}
+
 // "The same size as 5.1 mm", or "Near enough the same as #35 (0.0006″ big) and 2.8 mm (0.0009″ big)".
 function twinText(twins, b) {
   const same = twins.filter(t => Math.abs(t.mm - b.mm) < 0.006);
