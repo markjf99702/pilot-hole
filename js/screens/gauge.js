@@ -150,8 +150,12 @@ export function renderGauge(main, { calibrate = false } = {}) {
       s += `<path d="M${x0 - 18} ${n(yl)}H${W}" class="jaw"/>`;
       s += grip(W - 30, yl, 'v');
     }
-    // How to lay it, up in the space where the head goes.
-    s += `<text x="${x0 + 6}" y="15" class="g-tell">Head above this line, side against the left one,</text><text x="${x0 + 6}" y="30" class="g-tell">then slide the red jaws until they touch.</text>`;
+    // How to lay it, up in the space where the head goes. A flat (countersunk) head is measured overall, so its
+    // top goes on the line; every other head sits above it, measured from under the head.
+    const tell = st.what === 'bit'
+      ? ['Lay the bit’s shank against the left line,', 'then close the red jaw on it.']
+      : ['Head above this line (a flat head: its top on it),', 'side on the left line, then close the red jaws.'];
+    s += `<text x="${x0 + 6}" y="15" class="g-tell">${tell[0]}</text><text x="${x0 + 6}" y="30" class="g-tell">${tell[1]}</text>`;
     svg.innerHTML = s;
   }
 
@@ -191,7 +195,7 @@ export function renderGauge(main, { calibrate = false } = {}) {
         <button type="button" class="g-nudge" data-d="0.05" aria-label="Wider">${ICON.plus}</button>
       </div>
       ${st.what === 'screw' ? `<div class="g-row g-meas">
-        <span class="g-what">Length <small>${st.tip === 'pointed' ? 'under the head' : 'under the head (flat heads: all of it)'}</small></span>
+        <span class="g-what">Length <small>under the head;<br>a flat head, overall</small></span>
         <button type="button" class="g-nudge" data-l="-0.5" aria-label="Shorter">${ICON.minus}</button>
         <span class="g-read"><b>${mmText(st.len, 1)}</b> mm <small>${fracText(st.len / MM, 16)}″</small></span>
         <button type="button" class="g-nudge" data-l="0.5" aria-label="Longer">${ICON.plus}</button>

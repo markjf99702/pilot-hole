@@ -312,6 +312,24 @@ try {
   assert.match(await text(page, '.gauge-name'), /^#\d+ × 1 wood screw$/);
   await page.click('[data-kind="sheet"]');
   assert.match(await text(page, '.gauge-name'), /sheet-metal screw$/);
+  // The commonest screw in the drawer, a #8 × 1-1/4″ flat head, measured the way the gauge says: a flat head goes
+  // top on the line and is measured overall, 31.75 mm (29.3 under its head would be a 1-1/8″), and it's drawn so.
+  await page.click('[data-kind="wood"]');
+  await page.click('.g-result [data-go="measure"]');
+  await page.waitForSelector('.gauge[data-step="measure"]');
+  assert.match(await text(page, '.g-panel'), /Length under the head; a flat head, overall/i);
+  assert.match(await page.locator('.g-tell').first().textContent(), /a flat head: its top on it/);
+  const gx0 = Math.round(14 + 7 * 6), gy0 = Math.round(34 + 5 * 6);
+  const fw = await page.locator('#gField').boundingBox();
+  await page.mouse.move(fw.x + gx0 + 6.2 * 6, fw.y + fw.height - 30); await page.mouse.down();
+  await page.mouse.move(fw.x + gx0 + 4.1 * 6, fw.y + fw.height - 30, { steps: 5 }); await page.mouse.up();
+  await page.mouse.move(fw.x + fw.width - 30, fw.y + gy0 + 25.4 * 6); await page.mouse.down();
+  await page.mouse.move(fw.x + fw.width - 30, fw.y + gy0 + 31.75 * 6, { steps: 5 }); await page.mouse.up();
+  await page.click('[data-go="name"]');
+  assert.equal(await text(page, '.gauge-name'), '#8 × 1-1/4 wood screw');
+  const ws = await page.evaluate(() => { const b = document.querySelector('.g-draw .sg').getBBox(); return { top: b.y, bottom: b.y + b.height }; });
+  assert.ok(Math.abs(ws.top - gy0) < 1, `the flat head's top is ${ws.top - gy0} px off the line`);
+  assert.ok(Math.abs(ws.bottom - (gy0 + 31.75 * 6)) < 1.5, `the screw ends ${ws.bottom - gy0} px below the line`);
   await page.click('.g-close');
   await page.waitForSelector('.spec');
   await fits(page, 'the Holes screen after the gauge');
