@@ -572,6 +572,17 @@ try {
   }).map(t => t.textContent.trim()));
   assert.deepEqual(spills, [], 'a fastener’s name spills out of its tile');
   await fits(narrow.page, 'the Holes screen at 320');
+  // On the gauge, Back, More sizes and That one fit on one row without any of them wrapping.
+  await narrow.page.evaluate(() => window.pilotHole.store.setScreen(6));
+  await narrow.page.goto(base + '#/gauge');
+  await narrow.page.waitForSelector('.gauge[data-step="measure"]');
+  await jaws(narrow.page, 6, { dia: 4.85 });
+  await narrow.page.click('[data-go="threads"]');
+  await narrow.page.waitForSelector('.g-panel [data-more]');
+  const wrapped = await narrow.page.$$eval('.g-panel .btn', bs => bs.filter(b => b.getBoundingClientRect().height > (b.classList.contains('small') ? 39 : 47)).map(b => b.textContent.trim()));
+  assert.deepEqual(wrapped, [], 'a button wraps onto two lines');
+  assert.equal(await narrow.page.getAttribute('.g-panel [data-go="measure"]', 'aria-label'), 'Back');
+  await fits(narrow.page, 'the gauge at 320');
   await narrow.ctx.close();
 
   // ---------- On a laptop ----------

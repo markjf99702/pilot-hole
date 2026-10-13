@@ -608,6 +608,12 @@ body.gauge-on .toast { bottom: auto; top: calc(7px + env(safe-area-inset-top)); 
 .g-could { flex: 1; min-width: 0; font: 650 15px/1.25 var(--sans); color: var(--accent-2); }
 .g-end { justify-content: flex-end; flex-wrap: nowrap; }
 .g-end .g-small { flex: 1; }
+/* Three buttons in a row on the narrowest phones: a little less padding so none of them wraps */
+@media (max-width: 359px) {
+  .g-panel .btn { padding-left: 12px; padding-right: 12px; }
+  .g-panel .btn.small { padding-left: 10px; padding-right: 10px; }
+  .g-back span { display: none; } /* the arrow says it, and so do the steps along the top */
+}
 .g-next { flex: none; }
 .g-next svg, .btn svg { flex: none; }
 .g-tuck .g-mini { flex: 1; min-width: 0; margin: 0; font-size: 14.5px; color: var(--ink-2); }

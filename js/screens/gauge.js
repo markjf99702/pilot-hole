@@ -371,7 +371,7 @@ export function renderGauge(main, hash = '') {
       ${twin}
       <p class="g-say">Hold the threads against each comb. The one where every crest sits in a notch, right out to the 10, is it.</p>
       <div class="g-row g-end">
-        <button type="button" class="btn small" data-go="measure">${ICON.back} Back</button>
+        <button type="button" class="btn small g-back" data-go="measure" aria-label="Back">${ICON.back}<span>Back</span></button>
         ${st.more || combsFor(st.dia, { more: true }).length > combs.length ? `<button type="button" class="btn small" data-more>${st.more ? 'Fewer' : 'More sizes'}</button>` : ''}
         <button type="button" class="btn primary g-next" data-go="name"${pick ? '' : ' disabled'}>That one ${ICON.arrow}</button>
       </div>`;
