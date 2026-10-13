@@ -131,7 +131,7 @@ export function renderHoles(main, fromHash) {
       if (scroll[el.dataset.row] != null) el.scrollLeft = scroll[el.dataset.row];
       if (scrollChips || scroll[el.dataset.row] == null) {
         const on = $('[aria-checked="true"]', el);
-        if (on) el.scrollLeft = Math.max(0, on.offsetLeft - el.clientWidth / 2 + on.offsetWidth / 2);
+        if (on) centre(el, on);
       }
       edges(el);
     }
@@ -281,6 +281,13 @@ function otherSizes(b) {
   if (b.metric) return `${decIn(b.in, 4)}″`;
   if (b.kind === 'frac') return `${decIn(b.in, 4)}″ · ${mmText(b.mm)} mm`;
   return bitSizes(b);
+}
+
+// Scroll a chip row so the ticked chip sits in its middle, clear of the fades at either end. Measured against
+// the row itself: a chip's offsetLeft counts from the page, which put it 80 px left of centre, under the fade.
+function centre(row, chip) {
+  const r = row.getBoundingClientRect(), c = chip.getBoundingClientRect();
+  row.scrollLeft += c.left + c.width / 2 - (r.left + row.clientWidth / 2);
 }
 
 // Which ends of a chip row have more to scroll to, for the fades.

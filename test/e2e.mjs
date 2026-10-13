@@ -511,6 +511,27 @@ try {
   await fits(short.page, 'the combs on a short phone');
   await short.ctx.close();
 
+  // ---------- The narrowest phone: the picker still shows what's ticked ----------
+  const narrow = await device({ width: 320, height: 640 }, { isMobile: true, hasTouch: true });
+  await narrow.page.goto(base + '#/?type=machine&size=1%2F4-20&into=aluminium&head=socket');
+  await narrow.page.waitForSelector('.chips');
+  await narrow.page.evaluate(() => document.fonts.ready);
+  // Each ticked chip sits in its row clear of the fades at either end (it used to land 80 px left of centre,
+  // half out of sight), and every fastener's name fits its tile.
+  const chipsSeen = await narrow.page.$$eval('.chips', rows => rows.map(el => {
+    const on = el.querySelector('[aria-checked="true"]'), a = el.getBoundingClientRect(), b = on.getBoundingClientRect();
+    const at = el.dataset.at, fadeL = at === 'middle' || at === 'end' ? 22 : 0, fadeR = at === 'start' || at === 'middle' ? 26 : 0;
+    return { row: el.dataset.row, ok: b.left >= a.left + fadeL - 0.5 && b.right <= a.right - fadeR + 0.5 };
+  }));
+  assert.deepEqual(chipsSeen.filter(x => !x.ok).map(x => x.row), [], 'a ticked chip is under a fade');
+  const spills = await narrow.page.$$eval('.type', ts => ts.filter(t => {
+    const r = document.createRange(); r.selectNodeContents(t.querySelector('span'));
+    return r.getBoundingClientRect().width > t.getBoundingClientRect().width + 0.5;
+  }).map(t => t.textContent.trim()));
+  assert.deepEqual(spills, [], 'a fastener’s name spills out of its tile');
+  await fits(narrow.page, 'the Holes screen at 320');
+  await narrow.ctx.close();
+
   // ---------- On a laptop ----------
   const laptop = await device({ width: 1280, height: 800 });
   page = laptop.page;
