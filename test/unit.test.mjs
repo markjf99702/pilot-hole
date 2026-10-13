@@ -424,6 +424,9 @@ test('machine screws: heads, keys, counterbores and countersinks', () => {
   assert.equal(key('M8', 'socket'), '6 mm');
   assert.equal(key('M3', 'button'), '2 mm');
   assert.equal(key('1/4-20', 'button'), '5/32″');
+  // Pan heads take a Phillips driver by size (ISO 7045 and ASME B18.6.3): PH0 for an M2, which still gets a pan head.
+  assert.ok(FS.headsFor(threadById('M2')).includes('pan'), 'an M2 comes with a pan head');
+  assert.deepEqual(['M2', 'M2.5', 'M3', 'M4', 'M5', 'M6', '4-40', '10-24'].map(size => key(size, 'pan')), ['Phillips #0', 'Phillips #1', 'Phillips #1', 'Phillips #2', 'Phillips #2', 'Phillips #3', 'Phillips #1', 'Phillips #2']);
   // Into wood: through and a nut, or a threaded insert.
   const wood = holesFor({ type: 'machine', size: '1/4-20', material: 'hardwood', head: 'socket' });
   assert.equal(wood.holes[0].key, 'through');

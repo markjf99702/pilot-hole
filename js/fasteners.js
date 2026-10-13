@@ -85,8 +85,8 @@ const SOCKET_MM = {
 };
 // Button heads (ISO 7380) and countersunk socket heads (ISO 10642, head 2.24 × d) share keys from M3 up.
 const BUTTON_KEY_MM = { 3: 2, 4: 2.5, 5: 3, 6: 4, 8: 5, 10: 6, 12: 8 };
-// Pan heads, Phillips (ISO 7045).
-const PAN_MM = { 2: 1, 2.5: 1, 3: 1, 4: 2, 5: 2, 6: 3 };
+// Pan heads, Phillips (ISO 7045): the cross recess each size takes, PH0 for an M2.
+const PAN_MM = { 2: 0, 2.5: 1, 3: 1, 4: 2, 5: 2, 6: 3 };
 // Hex bolts (ISO 4014/4017) and nuts (ISO 4032). Older DIN 931 and 934 parts are a size bigger at M10 and M12.
 const HEX_MM = { 2: 4, 2.5: 5, 3: 5.5, 4: 7, 5: 8, 6: 10, 8: 13, 10: 16, 12: 18 };
 const HEX_DIN = { 10: 17, 12: 19 };
@@ -117,7 +117,7 @@ export function headFacts(t, head) {
   if (head === 'socket' && SOCKET_MM[d]) return { kind: 'socket', headMm: SOCKET_MM[d].head, heightMm: SOCKET_MM[d].k, keyMm: SOCKET_MM[d].key, cbMm: SOCKET_MM[d].cb };
   if (head === 'button' && BUTTON_KEY_MM[d]) return { kind: 'button', keyMm: BUTTON_KEY_MM[d] };
   if (head === 'flat' && BUTTON_KEY_MM[d]) return { kind: 'flat', headMm: +(2.24 * d).toFixed(2), angle: 90, keyMm: BUTTON_KEY_MM[d] };
-  if (head === 'pan' && PAN_MM[d]) return { kind: 'pan', phillips: PAN_MM[d] };
+  if (head === 'pan' && PAN_MM[d] != null) return { kind: 'pan', phillips: PAN_MM[d] };
   if (head === 'hex' && HEX_MM[d] && d >= 3) return { kind: 'hex', wrenchMm: HEX_MM[d], dinMm: HEX_DIN[d] };
   return null;
 }
