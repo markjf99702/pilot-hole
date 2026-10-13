@@ -451,3 +451,37 @@ test('lengths snap to what screws are sold in, and names read like a hardware st
   assert.equal(G.metricKind({ kind: 'machine', thread: threadById('M3') }), true);
   assert.equal(G.metricKind({ kind: 'wood' }), false);
 });
+
+// ---------- What's kept in the browser ----------
+
+test('the store keeps sets, missing and loose bits, and loads only its own files', async () => {
+  const mem = new Map();
+  globalThis.localStorage = { getItem: k => (mem.has(k) ? mem.get(k) : null), setItem: (k, v) => mem.set(k, String(v)), removeItem: k => mem.delete(k) };
+  mem.set('pilot-hole.v1', '{not json');
+  const { store } = await import('../js/store.js?fresh');
+  assert.deepEqual(store.sets, ['frac29'], 'bad data starts fresh with a fractional set');
+  store.setSet('met25', true);
+  store.setMissing('frac29', 'f:7/64', true);
+  store.addLoose('n:29');
+  store.addLoose('nonsense');
+  assert.ok(store.has('m:2.5') && store.has('n:29') && !store.has('f:7/64'));
+  const saved = JSON.parse(mem.get('pilot-hole.v1'));
+  assert.deepEqual(saved.sets, ['frac29', 'met25']);
+  assert.deepEqual(saved.missing, ['frac29:f:7/64']);
+  assert.deepEqual(saved.loose, ['n:29']);
+  // A saved copy round-trips; anything else is refused and changes nothing.
+  const copy = store.exportData();
+  assert.equal(copy.app, 'pilot-hole');
+  store.setMissing('frac29', 'f:7/64', false);
+  store.importData(copy);
+  assert.ok(!store.has('f:7/64'));
+  assert.throws(() => store.importData({ hello: 1 }), /isn’t a Pilot Hole file/);
+  assert.deepEqual(store.sets, ['frac29', 'met25']);
+  store.importData({ app: 'pilot-hole', sets: ['frac29', 'made-up'], missing: ['made-up:x'], loose: ['f:1/8', 'f:1/8', 'zz'] });
+  assert.deepEqual(store.sets, ['frac29'], 'unknown sets are dropped');
+  assert.deepEqual(store.missing, []);
+  assert.deepEqual(store.loose, ['f:1/8']);
+  store.clearAll();
+  assert.deepEqual(store.sets, ['frac29']);
+  delete globalThis.localStorage;
+});

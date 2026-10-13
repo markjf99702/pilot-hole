@@ -269,6 +269,20 @@ try {
   await fits(page, 'the Holes screen after the gauge');
   await phone.ctx.close();
 
+  // ---------- A small phone: the card won't fit lengthways, so the gauge measures across it ----------
+  const small = await device({ width: 375, height: 667 }, { isMobile: true, hasTouch: true });
+  await small.page.goto(base + '#/gauge');
+  await small.page.waitForSelector('.gauge[data-step="cal"]');
+  assert.match(await text(small.page, '.g-say'), /Drag the red line to the card’s right edge/);
+  const sb = await small.page.locator('#gField').boundingBox();
+  const sk0 = await small.page.evaluate(() => parseFloat(document.querySelector('.g-read b').textContent));
+  const sx = sb.x + 14 + 53.98 * sk0;
+  await small.page.mouse.move(sx, sb.y + sb.height - 34); await small.page.mouse.down();
+  await small.page.mouse.move(sb.x + 14 + 53.98 * 6.4, sb.y + sb.height - 34, { steps: 6 }); await small.page.mouse.up();
+  assert.equal(await small.page.evaluate(() => parseFloat(document.querySelector('.g-read b').textContent)), 6.4, 'the drag across the card set 6.40 px per mm');
+  await fits(small.page, 'the gauge on a small phone');
+  await small.ctx.close();
+
   // ---------- On a laptop ----------
   const laptop = await device({ width: 1280, height: 800 });
   page = laptop.page;
