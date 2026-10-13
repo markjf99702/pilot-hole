@@ -223,7 +223,7 @@ main { max-width: 1160px; margin: 0 auto; padding: 16px 16px 40px; outline: none
   display: grid; justify-items: center; gap: 3px; min-width: 0;
   border: 0; background: none; padding: 6px 0 5px; border-radius: 10px; color: var(--ink-2);
 }
-.type .ticon { fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.type .ticon, .chip .ticon { fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 .type span { font: 650 10.5px/1.05 var(--sans); font-stretch: 62.5%; text-align: center; max-width: 100%; letter-spacing: .01em; }
 .type:hover { background: var(--soft); color: var(--ink); }
 .type[aria-checked="true"] { background: var(--steel); color: var(--steel-ink); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .15), 0 2px 0 var(--accent); }
