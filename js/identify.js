@@ -20,15 +20,31 @@ export function guessPxPerMm({ coarse = false, shortSide = 400 } = {}) {
 
 // A thread's crests measure a little under its nominal size: the allowance and tolerance of a 2A or 6g thread.
 export const expectedMajor = t => t.d - (0.08 + 0.06 * t.p);
-const windowFor = t => Math.max(0.3, 0.06 * t.d);
+// How far from that a measurement can be and still be this size: a pixel or two, more for big ones.
+const slack = dMm => Math.max(0.3, 0.06 * dMm);
+const windowFor = t => slack(t.d);
+// Does a measurement across the threads fit this thread?
+export const fitsThread = (t, dMm) => Math.abs(dMm - expectedMajor(t)) <= windowFor(t);
+
+// Threads nearest first by some distance, except that two pitches of one size (1/4-20 and 1/4-28, M8 and M8 × 1)
+// measure all but the same, so they stay together with the coarse one first: it's far commoner.
+function ranked(list, dist) {
+  const size = x => `${x.thread.system}|${x.thread.size}`;
+  const best = new Map();
+  for (const x of list) best.set(size(x), Math.min(best.get(size(x)) ?? Infinity, dist(x)));
+  const fine = x => (x.thread.cls === 'UNC' || x.thread.cls === 'coarse' ? 0 : 1);
+  return list.sort((a, b) => best.get(size(a)) - best.get(size(b)) || fine(a) - fine(b) || dist(a) - dist(b));
+}
 
 // Machine threads a measured diameter could be, best first.
 export function threadCandidates(dMm) {
-  return THREADS
+  return ranked(THREADS
     .map(t => ({ thread: t, off: dMm - expectedMajor(t), score: Math.abs(dMm - expectedMajor(t)) / windowFor(t) }))
-    .filter(c => c.score <= 1)
-    .sort((a, b) => a.score - b.score);
+    .filter(c => c.score <= 1), c => c.score);
 }
+
+// Measurements past either end of the machine-thread tables: smaller than a #0-80 or bigger than a 1/2″ bolt.
+const THREAD_ENDS = [Math.min(...THREADS.map(t => expectedMajor(t) - windowFor(t))), Math.max(...THREADS.map(t => expectedMajor(t) + windowFor(t)))];
 
 // The combs to hold the screw against: one per pitch, in the order the candidates came.
 export function combsFor(dMm, { more = false } = {}) {
@@ -36,7 +52,7 @@ export function combsFor(dMm, { more = false } = {}) {
   let pool = cands.map(c => c.thread);
   if (more || pool.length < 2) {
     // Add the nearest sizes either side, so there's always something to compare.
-    const near = [...THREADS].sort((a, b) => Math.abs(expectedMajor(a) - dMm) - Math.abs(expectedMajor(b) - dMm));
+    const near = ranked(THREADS.map(t => ({ thread: t })), x => Math.abs(expectedMajor(x.thread) - dMm)).map(x => x.thread);
     for (const t of near) { if (pool.length >= (more ? 8 : 3)) break; if (!pool.includes(t)) pool.push(t); }
   }
   const combs = [];
@@ -72,12 +88,34 @@ export function threadOnComb(comb, dMm) {
 }
 
 // Pointed screws go by gauge: the nearest wood screw, sheet-metal screw or lag to the measured crests.
+const POINTED = {
+  wood: WOOD_SCREWS.map(w => ({ id: String(w.g), d: w.d * MM, label: `#${w.g}` })),
+  sheet: SHEET_SCREWS.map(s => ({ id: String(s.g), d: s.d * MM, label: `#${s.g}`, st: s.st })),
+  lag: LAGS.map(l => ({ id: l.id, d: l.d, label: l.label, metric: l.metric })),
+};
+const crest = x => x.d - 0.12;
 export function gaugeFor(dMm, kind) {
-  const list = kind === 'sheet' ? SHEET_SCREWS.map(s => ({ id: String(s.g), d: s.d * MM, label: `#${s.g}`, st: s.st }))
-    : kind === 'lag' ? LAGS.map(l => ({ id: l.id, d: l.d, label: l.label, metric: l.metric }))
-      : WOOD_SCREWS.map(w => ({ id: String(w.g), d: w.d * MM, label: `#${w.g}` }));
-  const exp = x => x.d - 0.12;
-  return [...list].sort((a, b) => Math.abs(exp(a) - dMm) - Math.abs(exp(b) - dMm))[0];
+  return [...(POINTED[kind] || POINTED.wood)].sort((a, b) => Math.abs(crest(a) - dMm) - Math.abs(crest(b) - dMm))[0];
+}
+
+// How far a kind's sizes reach as measured across the threads: from a little under its smallest to a little
+// over its biggest. A #2 to #14 wood screw, a #4 to #14 sheet-metal screw, a 1/4″ (or 6 mm) to 1/2″ lag.
+export function kindReach(kind) {
+  const list = POINTED[kind];
+  const lo = list.reduce((a, b) => (crest(b) < crest(a) ? b : a)), hi = list.reduce((a, b) => (crest(b) > crest(a) ? b : a));
+  return { lo: crest(lo) - slack(lo.d), hi: crest(hi) + slack(hi.d), first: lo, last: hi };
+}
+export const kindFits = (kind, dMm) => { const r = kindReach(kind); return dMm >= r.lo && dMm <= r.hi; };
+// What a pointed screw this size most likely is: a wood screw, unless it's fatter than any wood screw, when it's a lag.
+export const likelyKind = dMm => (dMm > kindReach('wood').hi ? 'lag' : 'wood');
+
+// A size nothing in the tables comes near: 'small' below the smallest, 'big' past the biggest, or null.
+// Blunt screws go by the machine threads, pointed ones run from a #2 wood screw to a 1/2″ lag, and drill
+// bits from #80 to 1″.
+const BIT_ENDS = (() => { const mm = BITS.filter(b => b.kind !== 'forstner').map(b => b.mm); return [Math.min(...mm) - 0.2, Math.max(...mm) + slack(Math.max(...mm)) / 2]; })();
+export function pastTables(dMm, what = 'blunt') {
+  const [lo, hi] = what === 'pointed' ? [kindReach('wood').lo, kindReach('lag').hi] : what === 'bit' ? BIT_ENDS : THREAD_ENDS;
+  return dMm < lo ? 'small' : dMm > hi ? 'big' : null;
 }
 
 // The drill bits nearest a measured shank, closest first.

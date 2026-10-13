@@ -337,6 +337,26 @@ try {
   const ws = await page.evaluate(() => { const b = document.querySelector('.g-draw .sg').getBBox(); return { top: b.y, bottom: b.y + b.height }; });
   assert.ok(Math.abs(ws.top - gy0) < 1, `the flat head's top is ${ws.top - gy0} px off the line`);
   assert.ok(Math.abs(ws.bottom - (gy0 + 31.75 * 6)) < 1.5, `the screw ends ${ws.bottom - gy0} px below the line`);
+  // Fatter than any wood screw: 7.8 mm pointed is a 5/16″ lag, and the wood screw chip, marked off, says why not.
+  await page.click('.g-result [data-go="measure"]');
+  await page.waitForSelector('.gauge[data-step="measure"]');
+  await page.mouse.move(fw.x + gx0 + 4.1 * 6, fw.y + fw.height - 30); await page.mouse.down();
+  await page.mouse.move(fw.x + gx0 + 7.8 * 6, fw.y + fw.height - 30, { steps: 5 }); await page.mouse.up();
+  assert.match(await text(page, '.g-could'), /^Could be a 5\/16″ lag screw$/);
+  await page.click('[data-go="name"]');
+  assert.equal(await text(page, '.gauge-name'), '5/16″ × 1-1/4 lag screw');
+  assert.match(await page.getAttribute('[data-kind="wood"]', 'class'), /\boff\b/);
+  await page.click('[data-kind="wood"]', { force: true });
+  assert.match(await text(page, '#toast'), /Wood screws stop at #14: this one’s fatter\./);
+  assert.match(await text(page, '.gauge-name'), /lag screw$/);
+  // Past the end of the tables, it names nothing: a 15 mm bolt is bigger than anything in them.
+  await page.click('.g-result [data-go="measure"]');
+  await page.waitForSelector('.gauge[data-step="measure"]');
+  await page.click('[data-tip="blunt"]');
+  await page.mouse.move(fw.x + gx0 + 7.8 * 6, fw.y + fw.height - 30); await page.mouse.down();
+  await page.mouse.move(fw.x + gx0 + 15 * 6, fw.y + fw.height - 30, { steps: 5 }); await page.mouse.up();
+  assert.match(await text(page, '.g-could'), /Bigger than anything in the tables: they stop at 1\/2″ and M12/);
+  assert.equal(await page.locator('.g-panel [data-go="threads"]').isDisabled(), true, 'no going on to name a 15 mm bolt');
   await page.click('.g-close');
   await page.waitForSelector('.spec');
   await fits(page, 'the Holes screen after the gauge');

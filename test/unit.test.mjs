@@ -609,6 +609,32 @@ test('the named screw drawn at true size: head, shank, threads and point in mill
   }
 });
 
+test('past the ends of the tables it says so, and a pointed screw too fat for a wood screw is a lag', () => {
+  // A 5/16″ lag measures about 7.8 mm: fatter than any wood or sheet-metal screw, so it's a lag.
+  assert.equal(G.likelyKind(7.8), 'lag');
+  assert.equal(G.likelyKind(4.1), 'wood');
+  assert.ok(!G.kindFits('wood', 7.8) && !G.kindFits('sheet', 7.8) && G.kindFits('lag', 7.8));
+  assert.ok(!G.kindFits('lag', 4.1), 'nothing as thin as 4.1 mm is a lag');
+  assert.ok(G.kindFits('wood', 6.2) && G.kindFits('lag', 6.2), 'a #14 wood screw and a 1/4″ lag measure the same');
+  assert.equal(G.kindReach('wood').last.label, '#14');
+  // A 15 mm bolt is bigger than anything in the thread tables, and 1 mm smaller; every thread in them is inside.
+  assert.equal(G.pastTables(15), 'big');
+  assert.equal(G.pastTables(1), 'small');
+  assert.equal(G.pastTables(12.6), null);
+  for (const t of THREADS) assert.equal(G.pastTables(G.expectedMajor(t)), null, t.label);
+  assert.equal(G.pastTables(15, 'pointed'), 'big');
+  assert.equal(G.pastTables(1.5, 'pointed'), 'small');
+  assert.equal(G.pastTables(30, 'bit'), 'big');
+  assert.equal(G.pastTables(25.4, 'bit'), null);
+  // Two pitches of one size: the coarse one first, though the fine one measures a hair nearer.
+  assert.deepEqual(G.threadCandidates(12.6).map(c => c.thread.id), ['1/2-13', '1/2-20']);
+  assert.equal(G.threadCandidates(6.25)[0].thread.id, '1/4-20');
+  // Between sizes (a 7 mm thread, between 1/4″ and 5/16″), the combs are the nearest, coarse before fine,
+  // and the nearest thread is known not to fit.
+  assert.deepEqual(G.combsFor(7).map(c => c.threads[0].id), ['5/16-18', '5/16-24', '1/4-20']);
+  assert.ok(!G.fitsThread(threadById('1/4-20'), 7) && G.fitsThread(threadById('1/4-20'), 6.2));
+});
+
 test('pointed screws by gauge, and drill bits by size', () => {
   assert.equal(G.gaugeFor(4.05, 'wood').label, '#8');
   assert.equal(G.gaugeFor(4.7, 'wood').label, '#10');

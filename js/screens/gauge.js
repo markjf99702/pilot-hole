@@ -3,7 +3,8 @@
 // true size where it lay so the real one can be laid back on its picture.
 import { store } from '../store.js';
 import { CARD, plausible, guessPxPerMm, threadCandidates, combsFor, threadOnComb, tenThreads, expectedMajor, nearTwin,
-  twinCall, gaugeFor, bitsNear, bitCandidates, snapLength, screwName, screwShape } from '../identify.js';
+  twinCall, gaugeFor, bitsNear, bitCandidates, snapLength, screwName, screwShape, fitsThread, kindFits, kindReach,
+  likelyKind, pastTables } from '../identify.js';
 import { holesFor, chooseBit } from '../holes.js';
 import * as FS from '../fasteners.js';
 import { fullName, pitchText } from '../threads.js';
@@ -16,6 +17,14 @@ import { $, esc, bitHTML, bitSizes, fracify, toast, ICON } from '../ui.js';
 
 const n = x => +x.toFixed(2);
 const STEPS = [['cal', 'Card'], ['measure', 'Measure'], ['threads', 'Threads'], ['name', 'Name']];
+const an = s => (/^(M|8\b|11\b|18\b)/.test(s) ? 'an' : 'a'); // an M5, an 8 mm lag, a #10-32
+// Past either end of the tables, it says so instead of naming the nearest thing.
+const PAST = {
+  blunt: { big: 'Bigger than anything in the tables: they stop at 1/2″ and M12', small: 'Smaller than anything in the tables: they start at #0-80 and M2' },
+  pointed: { big: 'Bigger than any screw in the tables: lags stop at 1/2″ and 12 mm', small: 'Smaller than any screw in the tables: they start at a #2 wood screw' },
+  bit: { big: 'Bigger than any twist bit in the tables: they stop at 1″', small: 'Smaller than any bit in the tables' },
+};
+const KINDS = [['wood', 'Wood screw', 'Wood screws'], ['sheet', 'Sheet-metal screw', 'Sheet-metal screws'], ['lag', 'Lag screw', 'Lag screws']];
 const LONGEST = 160; // mm: the − and + go this far, past the glass, for a screw longer than the screen
 
 export function renderGauge(main, { calibrate = false } = {}) {
@@ -29,7 +38,8 @@ export function renderGauge(main, { calibrate = false } = {}) {
     what: 'screw',          // screw or bit
     tip: 'blunt',           // blunt (machine screw or bolt) or pointed (wood, sheet-metal or lag)
     dia: 6.2, len: 25.4,    // mm
-    more: false, comb: null, thread: null, head: null, kind: 'wood',
+    more: false, comb: null, thread: null, head: null,
+    kind: null,             // a pointed screw's kind, once picked: wood, sheet or lag
     tucked: false,          // the panel tucked away, for a screw longer than the glass
   };
   const recal = !!saved && !saved.same;
@@ -163,7 +173,8 @@ export function renderGauge(main, { calibrate = false } = {}) {
 
   function drawMeasurePanel() {
     const next = st.what === 'bit' || st.tip === 'pointed' ? 'name' : 'threads';
-    const nextBtn = `<button type="button" class="btn primary g-next" data-go="${next}">${next === 'name' ? 'Name it' : 'Threads'} ${ICON.arrow}</button>`;
+    const past = pastTables(st.dia, sort());
+    const nextBtn = `<button type="button" class="btn primary g-next" data-go="${next}"${past ? ' disabled' : ''}>${next === 'name' ? 'Name it' : 'Threads'} ${ICON.arrow}</button>`;
     gauge.classList.toggle('tucked', st.tucked);
     if (st.tucked) {
       // Tucked away: just the two sizes, so the glass runs nearly to the bottom of the screen.
@@ -172,11 +183,7 @@ export function renderGauge(main, { calibrate = false } = {}) {
         <button type="button" class="btn small" data-tuck>Show all</button>${nextBtn}</div>`;
       return;
     }
-    const cands = threadCandidates(st.dia).slice(0, 3).map(c => c.thread);
-    const sizes = [...new Set(cands.map(t => t.system === 'inch' ? t.sizeLabel : t.size))];
-    const could = st.what === 'bit'
-      ? `Nearest: ${bitsNear(st.dia, 3).map(x => esc(x.bit.name)).join(', ')}`
-      : st.tip === 'pointed' ? `Could be a ${esc(gaugeFor(st.dia, 'wood').label)} screw` : sizes.length ? `Could be ${fracify(sizes.join(' or '))}` : 'Off the end of the tables';
+    const could = couldBe(past);
     // Run out of glass for a long screw? The panel can tuck itself away.
     const atEnd = st.what === 'screw' && st.len >= maxLen() - 1;
     panel.innerHTML = `
@@ -207,6 +214,28 @@ export function renderGauge(main, { calibrate = false } = {}) {
         <p class="g-could">${could}</p>
         ${nextBtn}
       </div>`;
+  }
+
+  // What's being measured, for the tables it's looked up in: a drill bit, or a blunt or pointed screw.
+  const sort = () => (st.what === 'bit' ? 'bit' : st.tip);
+  // A pointed screw's kind: the one picked, if this size comes in it, or the likeliest for the size.
+  const kindNow = () => (st.kind && kindFits(st.kind, st.dia) ? st.kind : likelyKind(st.dia));
+
+  // What the size could be, in a few words, or that nothing in the tables comes near it.
+  function couldBe(past) {
+    if (past) return PAST[sort()][past];
+    if (st.what === 'bit') return `Nearest: ${bitsNear(st.dia, 3).map(x => esc(x.bit.name)).join(', ')}`;
+    if (st.tip === 'pointed') {
+      const w = kindFits('wood', st.dia) && gaugeFor(st.dia, 'wood'), l = kindFits('lag', st.dia) && gaugeFor(st.dia, 'lag');
+      if (w && l) return `Could be a ${esc(w.label)} wood screw or ${an(l.label)} ${fracify(l.label)} lag`;
+      return w ? `Could be a ${esc(w.label)} wood screw` : `Could be ${an(l.label)} ${fracify(l.label)} lag screw`;
+    }
+    const label = t => (t.system === 'inch' ? t.sizeLabel : t.size);
+    const sizes = [...new Set(threadCandidates(st.dia).slice(0, 3).map(c => label(c.thread)))];
+    if (sizes.length) return `Could be ${fracify(sizes.join(' or '))}`;
+    // In a gap between the sizes in the tables (6.8 mm, say): the nearest either side.
+    const near = [...new Set(combsFor(st.dia).flatMap(c => c.threads).map(label))].slice(0, 2);
+    return `Between sizes: nearest ${fracify(near.join(' and '))}`;
   }
 
   // Step 3: the combs, each spanning more than ten threads at true size. Every one is drawn: on this step the
@@ -352,13 +381,14 @@ export function renderGauge(main, { calibrate = false } = {}) {
   function nameScrew(k, x0, y0) {
     const pointed = st.tip === 'pointed';
     let name, pick, facts, shape, twinNote = '';
+    const kind = kindNow();
     if (pointed) {
-      const g = gaugeFor(st.dia, st.kind);
-      const len = snapLength(st.len, st.kind === 'lag' && g.metric);
-      name = screwName({ kind: st.kind, gauge: g, len });
-      pick = { type: st.kind === 'lag' ? 'lag' : st.kind === 'sheet' ? 'sheet' : 'wood', size: g.id };
+      const g = gaugeFor(st.dia, kind);
+      const len = snapLength(st.len, kind === 'lag' && g.metric);
+      name = screwName({ kind, gauge: g, len });
+      pick = { type: kind, size: g.id };
       facts = `You measured ${mmText(st.dia, 2)} mm across the threads${g.st ? ` (${esc(g.st)} in metric)` : ''}, ${lenWords(st.len, len)}.`;
-      shape = screwShape({ kind: st.kind, gauge: g, len });
+      shape = screwShape({ kind, gauge: g, len });
     } else {
       const { t, twin, sure } = namedThread();
       const heads = FS.headsFor(t);
@@ -368,10 +398,15 @@ export function renderGauge(main, { calibrate = false } = {}) {
       pick = { type: 'machine', size: t.id, ...(st.head ? { head: st.head } : {}) };
       facts = `${t.system === 'inch' ? `${esc(t.sizeLabel)} ${esc(t.cls)}` : `M${t.d}${t.cls === 'fine' ? ' fine' : ''}`}, ${esc(pitchText(t))}. You measured ${mmText(st.dia, 2)} mm across the threads, ${lenWords(st.len, len)}.`;
       if (twin) twinNote = `<p class="g-twin">${esc(fullName(twin))} has all but the same pitch, and the size you measured ${sure ? 'says' : 'leans to'} ${esc(shortName(t))}${sure ? '' : ': a nut you know will settle it'}.</p>`;
+      // Between the sizes in the tables, the nearest thread is a guess, and it says so.
+      if (!fitsThread(t, st.dia)) {
+        const off = st.dia - expectedMajor(t);
+        twinNote += `<p class="g-twin">${an(shortName(t)) === 'an' ? 'An' : 'A'} ${esc(shortName(t))} measures about ${fixed(expectedMajor(t), 2)} mm across its threads, ${fixed(Math.abs(off), 2)} mm ${off > 0 ? 'less' : 'more'} than this one. Check the jaw: it may be a size the tables don’t have.</p>`;
+      }
       st.thread = t;
       shape = screwShape({ kind: 'machine', thread: t, len, head: st.head });
     }
-    const r = holesFor({ ...pick, material: pointed ? (st.kind === 'sheet' ? 'steel' : 'hardwood') : 'aluminium' });
+    const r = holesFor({ ...pick, material: pointed ? (kind === 'sheet' ? 'steel' : 'hardwood') : 'aluminium' });
     const owned = store.owned();
     const holes = r.holes.filter(h => !h.cone && h.key !== 'plug' && h.key !== 'straight').slice(0, 4).map(h => {
       const c = chooseBit(h, owned, r.pick.material);
@@ -380,8 +415,11 @@ export function renderGauge(main, { calibrate = false } = {}) {
       return `<li><span>${esc(h.name)}</span><span class="g-bit"><b>${b ? bitHTML(b) : '—'}</b>${note ? `<small>${note}</small>` : ''}</span></li>`;
     }).join('');
     const chooser = pointed
-      ? `<p class="g-ask">Which kind is it?</p><div class="chips g-kinds" role="radiogroup" aria-label="Kind">${[['wood', 'Wood screw'], ['sheet', 'Sheet-metal screw'], ['lag', 'Lag screw']].map(([kd, lbl]) =>
-        `<button type="button" role="radio" class="chip" data-kind="${kd}" aria-checked="${st.kind === kd}">${typeIcon(kd, 22)}${lbl}</button>`).join('')}</div>`
+      // A kind that doesn't come in this size is shown but marked off; a tap says why.
+      ? `<p class="g-ask">Which kind is it?</p><div class="chips g-kinds" role="radiogroup" aria-label="Kind">${KINDS.map(([kd, lbl]) => {
+        const ok = kindFits(kd, st.dia);
+        return `<button type="button" role="radio" class="chip${ok ? '' : ' off'}" data-kind="${kd}" aria-checked="${kind === kd}"${ok ? '' : ' aria-disabled="true"'}>${typeIcon(kd, 22)}${lbl}</button>`;
+      }).join('')}</div>`
       : `<p class="g-ask">${st.head ? 'Head' : 'What’s its head like?'}</p><div class="chips g-heads" role="radiogroup" aria-label="Head">${FS.headsFor(st.thread).map(h =>
         `<button type="button" role="radio" class="chip head" data-head="${h}" aria-checked="${st.head === h}">${headIcon(h)}${esc(st.thread.system === 'metric' && h === 'flat' ? 'Countersunk' : FS.HEADS[h].short)}</button>`).join('')}</div>`;
     // Keep the name clear of the widest head this thread comes with, so picking one doesn't shove it along.
@@ -392,7 +430,7 @@ export function renderGauge(main, { calibrate = false } = {}) {
     return {
       reach,
       drawing: screwOnGlass(shape, { k, x0, y0 }),
-      label: `<p class="g-kicker">It’s ${/^(M|8\b|11\b|18\b)/.test(name) ? 'an' : 'a'}</p><h2 class="gauge-name">${fracName(name)}</h2><p class="g-facts">${facts}</p>${twinNote}`,
+      label: `<p class="g-kicker">It’s ${an(name)}</p><h2 class="gauge-name">${fracName(name)}</h2><p class="g-facts">${facts}</p>${twinNote}`,
       details: `${chooser}
         <section class="g-list" aria-label="Holes"><h3>Holes</h3><ul class="g-holes">${holes}</ul></section>
         <section class="g-list" aria-label="Tools"><h3>Tools</h3><ul class="g-tools">${r.tools.filter(t => t.what !== 'Washer').map(t => `<li><span>${esc(t.what)}</span><b>${fracify(t.text)}</b></li>`).join('')}</ul></section>
@@ -404,6 +442,11 @@ export function renderGauge(main, { calibrate = false } = {}) {
   }
 
   const shortName = t => (t.system === 'inch' ? t.label : t.size); // #10-32, M5
+  // Why a kind is marked off for this size: "Lag screws start at 6 mm: this one’s thinner."
+  function notThisKind(kind) {
+    const r = kindReach(kind), plural = KINDS.find(x => x[0] === kind)[2];
+    return st.dia > r.hi ? `${plural} stop at ${r.last.label}: this one’s fatter.` : `${plural} start at ${r.first.label}: this one’s thinner.`;
+  }
   const normal = (pick, pointed) => ({ ...pick, material: pointed ? (pick.type === 'sheet' ? 'steel' : 'hardwood') : (store.pick?.material && pick.type === store.pick.type ? store.pick.material : 'aluminium') });
   const lenWords = (mm, len) => `${mmText(mm, 1)} mm long${len.standard ? '' : ' (not a usual length)'}`;
   // "1/4-20 × 1-1/2 hex bolt" with the length's fraction set properly. The thread's name and each "× size"
@@ -493,7 +536,11 @@ export function renderGauge(main, { calibrate = false } = {}) {
       else if (y + COMB.band + 30 > field.scrollTop + field.clientHeight) field.scrollTo({ top: y - 40, behavior: smooth });
     }
     else if (b.dataset.head) { st.head = b.dataset.head; drawName(); }
-    else if (b.dataset.kind) { st.kind = b.dataset.kind; drawName(); }
+    else if (b.dataset.kind) {
+      if (b.getAttribute('aria-disabled') === 'true') { toast(notThisKind(b.dataset.kind)); return; }
+      st.kind = b.dataset.kind;
+      drawName();
+    }
     else if (b.dataset.putback) {
       const bit = b.dataset.id;
       store.setMissing(b.dataset.putback, bit, false);
