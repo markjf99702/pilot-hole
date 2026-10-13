@@ -604,6 +604,13 @@ try {
   await fresh.page.click('.g-close');
   await fresh.page.waitForSelector('.spec');
   assert.equal(await text(fresh.page, '.spec'), '#8 sheet-metal screw into steel ST4.2');
+  // Tapped on from there to a #10, closing the gauge comes back to the #10, not the #8 the link brought.
+  await fresh.page.click('.chip[data-size="10"]');
+  await fresh.page.click('.tabs a[data-tab="gauge"]');
+  await fresh.page.waitForSelector('.gauge[data-step="measure"]');
+  await fresh.page.click('.g-close');
+  await fresh.page.waitForSelector('.spec');
+  assert.equal(await text(fresh.page, '.spec'), '#10 sheet-metal screw into steel ST4.8', 'closing the gauge goes back to the fastener you were on');
   // The gauge can't name a heat-set insert, so there's no line for one.
   await fresh.page.click('[data-type="heatset"]');
   assert.equal(await fresh.page.locator('.pick-hint').count(), 0);

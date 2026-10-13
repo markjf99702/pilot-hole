@@ -42,8 +42,12 @@ function route() {
   cleanup = SCREENS[id].render(location.hash) || null;
   window.scrollTo(0, 0);
 }
-// Remember where you were, so closing the gauge goes back there.
-window.addEventListener('hashchange', () => { if (screenOf(location.hash) !== 'gauge') lastHash = location.hash || '#/'; });
+// Remember where you were, so closing the gauge goes back there: the address as you left it. The Holes screen
+// rewrites its address as you pick without a hashchange of its own, so the one you arrived at may be stale.
+window.addEventListener('hashchange', e => {
+  const was = (e.oldURL && new URL(e.oldURL).hash) || '#/';
+  if (screenOf(was) !== 'gauge') lastHash = was;
+});
 
 document.body.insertAdjacentHTML('afterbegin', DEFS);
 $('#bitsBtn').addEventListener('click', () => yourBitsSheet());
