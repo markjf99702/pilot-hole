@@ -229,10 +229,22 @@ try {
   // A finger on the card itself moves nothing...
   await page.mouse.move(box.x + 100, box.y + 200); await page.mouse.down(); await page.mouse.move(box.x + 100, box.y + 260, { steps: 4 }); await page.mouse.up();
   assert.equal(await page.evaluate(() => parseFloat(document.querySelector('.g-read b').textContent)), k0, 'touching the card moved the line');
-  // ...a drag from out past the card does.
+  // ...a drag from out past the card does. Overshoot past the foot of the glass and the line stops there, still
+  // across the screen, and the way to measure across the card lights up; it never turns on its side under a finger.
   await page.mouse.move(box.x + box.width - 30, lineY); await page.mouse.down();
+  await page.mouse.move(box.x + box.width - 30, box.y + box.height + 80, { steps: 8 });
+  assert.match(await page.locator('#gSvg .jaw').getAttribute('d'), /^M0 [\d.]+H\d+$/, 'the line turned on its side mid-drag');
+  assert.match(await text(page, '.g-say'), /the card’s far end/);
+  const atFoot = await page.evaluate(() => { const j = document.querySelector('#gSvg .jaw').getAttribute('d'); return +j.split(' ')[1].split('H')[0]; });
+  assert.ok(atFoot <= box.height - 8 && atFoot > box.height - 14, `the line stopped at ${atFoot}, the glass is ${box.height} tall`);
+  assert.equal(await page.locator('.g-stuck.on').count(), 1, 'the way to measure across the card lights up');
+  await page.mouse.move(box.x + box.width - 30, box.y + atFoot - 40, { steps: 4 });
+  assert.match(await page.locator('#gSvg .jaw').getAttribute('d'), /^M0 /, 'back up, it is still across the screen');
+  await page.mouse.up();
+  await page.mouse.move(box.x + box.width - 30, box.y + atFoot - 40); await page.mouse.down(); // where the line is now
   await page.mouse.move(box.x + box.width - 30, target, { steps: 6 }); await page.mouse.up();
   assert.equal(await page.evaluate(() => parseFloat(document.querySelector('.g-read b').textContent)), 6, 'the drag set 6.00 px per mm');
+  assert.equal(await page.locator('.g-stuck.on').count(), 0);
   // − and + move the line a whole pixel, so the reading changes where you can see it.
   await page.click('[data-nudge="1"]');
   assert.equal(await page.evaluate(() => document.querySelector('.g-read b').textContent), '6.01');

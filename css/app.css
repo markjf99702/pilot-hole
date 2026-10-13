@@ -572,6 +572,8 @@ body.gauge-on .toast { bottom: auto; top: 44%; }
 .g-say { font-weight: 550; font-size: 15.5px; line-height: 1.35; }
 .g-warn { padding: 6px 10px; border-radius: 10px; background: var(--accent-soft); font-size: 14.5px; }
 .g-small { font-size: 13.5px; color: var(--muted); line-height: 1.35; }
+/* The line's at the foot of the glass and the card goes on: the way out says so */
+.g-stuck.on { color: var(--accent-2); font-weight: 650; }
 .g-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .g-opts .seg button { min-height: 32px; font-size: 14px; padding: 3px 10px; }
 .g-meas { flex-wrap: nowrap; }

@@ -85,17 +85,23 @@ export function renderGauge(main, { calibrate = false } = {}) {
     moreBelow();
     // On its side a phone has too little glass to measure on.
     $('#gTurn', gauge).hidden = !(phone && innerWidth > innerHeight && st.step !== 'name');
-    if (st.step === 'cal') drawCal();
+    if (st.step === 'cal') drawCal({ choose: true });
     else if (st.step === 'measure') drawMeasure();
     else if (st.step === 'threads') drawThreads();
     else { svg.innerHTML = ''; drawName(); }
   }
 
-  // Step 1: the card.
-  function drawCal() {
+  // Step 1: the card. Which way round it's measured is settled when the step opens (lengthways, if the card fits
+  // the glass that way) or the screen changes, never under a finger: a drag or a nudge only moves the line, and
+  // the line stops at the edge of the glass.
+  function drawCal({ choose = false } = {}) {
     drawCalPanel();
     size();
-    if (st.calEdge === 'long' && !st.edgeChosen && 14 + CARD.long * st.k + 30 > H) { st.calEdge = 'short'; drawCalPanel(); size(); }
+    if (choose && !st.edgeChosen) {
+      const edge = 14 + CARD.long * st.k + 30 > H ? 'short' : 'long';
+      if (edge !== st.calEdge) { st.calEdge = edge; drawCalPanel(); size(); }
+    }
+    if (st.k > calMax()) { st.k = clampCal(st.k); drawCalPanel(); }
     const { x0, y0 } = corner();
     const k = st.k, cw = CARD.short * k, ch = CARD.long * k, r = CARD.corner * k;
     let s = `<rect x="${x0}" y="${y0}" width="${n(cw)}" height="${n(ch)}" rx="${n(r)}" class="card-ghost"/>`;
@@ -114,9 +120,14 @@ export function renderGauge(main, { calibrate = false } = {}) {
     }
     svg.innerHTML = s;
   }
+  // How far the line goes: to the foot (or the right) of the glass, less a little. Across the card it has to get
+  // near the edge (a 375-wide phone's card reaches 360), and a grip half out of sight still drags.
+  const calMax = () => (st.calEdge === 'long' ? (H - 10 - corner().y0) / CARD.long : (W - 6 - corner().x0) / CARD.short);
+  const clampCal = v => clamp(v, 2, Math.min(16, calMax()));
   function drawCalPanel() {
     const long = st.calEdge === 'long';
     const fits = 14 + CARD.long * st.k + 30 < field.clientHeight; // the card lengthways, on this screen
+    const stuck = long && st.k >= calMax() - 0.005; // the line's at the foot of the glass and the card goes on
     panel.innerHTML = `
       ${recal ? '<p class="g-warn">This screen or its zoom has changed since you last calibrated, so do it once more.</p>' : ''}
       <p class="g-say">${long
@@ -129,7 +140,7 @@ export function renderGauge(main, { calibrate = false } = {}) {
         <button type="button" class="btn primary g-next" data-go="measure">That’s it</button>
       </div>
       <p class="g-small">Any card the size of a bank card works: they’re all ${CARD.long.toFixed(2)} × ${CARD.short.toFixed(2)} mm. ${long
-        ? `${fits ? 'Card too long for the screen?' : 'The card won’t fit this screen lengthways:'} <button type="button" class="link-btn" data-edge="short">Measure across it instead</button>`
+        ? `<span class="g-stuck${stuck ? ' on' : ''}">Card longer than the glass? <button type="button" class="link-btn" data-edge="short">Measure across it instead</button></span>`
         : fits ? '<button type="button" class="link-btn" data-edge="long">Measure its long side instead</button> (more exact)' : ''}</p>`;
   }
 
@@ -496,8 +507,8 @@ export function renderGauge(main, { calibrate = false } = {}) {
     if (!drag || e.pointerId !== drag.id) return;
     const r = field.getBoundingClientRect();
     const dx = e.clientX - r.left - drag.x, dy = e.clientY - r.top - drag.y;
-    if (drag.what === 'cal-long') st.k = clampK((drag.k * CARD.long + dy) / CARD.long);
-    else if (drag.what === 'cal-short') st.k = clampK((drag.k * CARD.short + dx) / CARD.short);
+    if (drag.what === 'cal-long') st.k = clampCal((drag.k * CARD.long + dy) / CARD.long);
+    else if (drag.what === 'cal-short') st.k = clampCal((drag.k * CARD.short + dx) / CARD.short);
     else if (drag.what === 'dia') st.dia = clamp(drag.dia + dx / st.k, 0.5, maxDia());
     else st.len = clamp(drag.len + dy / st.k, 1, Math.max(maxLen(), drag.len));
     st.step === 'cal' ? drawCal() : drawMeasure();
@@ -506,7 +517,6 @@ export function renderGauge(main, { calibrate = false } = {}) {
   field.addEventListener('pointerup', end);
   field.addEventListener('pointercancel', end);
   const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
-  const clampK = v => clamp(v, 2, 16);
   const maxDia = () => (W - corner().x0 - 24) / st.k;
   const maxLen = () => (H - corner().y0 - 10) / st.k;
 
@@ -517,7 +527,7 @@ export function renderGauge(main, { calibrate = false } = {}) {
     if (b.dataset.nudge) {
       // A whole pixel over the card's length, or across it: enough to see the line move.
       const edge = st.calEdge === 'long' ? CARD.long : CARD.short;
-      st.k = clampK(st.k + +b.dataset.nudge / edge);
+      st.k = clampCal(st.k + +b.dataset.nudge / edge);
       drawCal();
     } else if (b.dataset.edge) { st.calEdge = b.dataset.edge; st.edgeChosen = true; drawCal(); }
     else if (b.dataset.d) { st.dia = clamp(st.dia + +b.dataset.d, 0.5, maxDia()); drawMeasure(); }
