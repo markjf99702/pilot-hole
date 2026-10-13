@@ -290,6 +290,9 @@ try {
   assert.match(await text(page, '.g-read'), /pixels to the mm/);
   await page.click('[data-go="measure"]');
   await page.waitForSelector('.gauge[data-step="measure"]');
+  // "Calibrated" shows over the steps along the top, not on the glass where the screw goes.
+  const [tb, gb] = await page.evaluate(() => [document.getElementById('toast'), document.querySelector('.g-top')].map(e => e.getBoundingClientRect().toJSON()));
+  assert.ok(tb.height > 0 && tb.bottom <= gb.bottom + 1, `the toast reaches ${tb.bottom - gb.bottom} px onto the glass`);
   const scr = await page.evaluate(() => JSON.parse(localStorage.getItem('pilot-hole.screen')));
   assert.ok(Math.abs(scr.pxPerMm - 6) < 0.01, 'the calibration is kept');
 
