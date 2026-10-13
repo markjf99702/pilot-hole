@@ -188,6 +188,13 @@ try {
   await page.locator('.sheet .use', { hasText: 'M3 heat-set insert' }).click();
   await page.waitForFunction(() => document.querySelector('.spec')?.textContent.includes('heat-set'));
   assert.equal(await text(page, '.spec'), 'M3 heat-set insert into printed part');
+  // Holes keeps a fastener reached by a link: away to the drill index and back, it's still the insert,
+  // not the #12 wood screw last tapped on the picker.
+  await page.click('.tabs a[data-tab="index"]');
+  await page.waitForSelector('.case');
+  await page.click('.tabs a[data-tab="holes"]');
+  await page.waitForSelector('.spec');
+  assert.equal(await text(page, '.spec'), 'M3 heat-set insert into printed part', 'the Holes tab forgot the linked pick');
 
   // ---------- Your bits: save a copy and load it back ----------
   await page.click('#bitsBtn');

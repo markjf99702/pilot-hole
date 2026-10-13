@@ -69,6 +69,9 @@ const NOT_FOR = {
 export function renderHoles(main, fromHash) {
   let pick = normalizePick(fromHash || store.pick || {});
   lastPick[pick.type] = pick;
+  // A pick that came by a link (a bit's sheet, the gauge, a shared address) is the last one looked at too,
+  // so the Holes tab comes back to it.
+  if (fromHash) store.setPick(pick);
   main.innerHTML = `
     <section class="holes">
       <div class="picker" id="picker"></div>
