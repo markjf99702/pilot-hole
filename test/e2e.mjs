@@ -374,6 +374,11 @@ try {
   await small.page.click('[data-go="name"]');
   assert.equal(await text(small.page, '.gauge-name'), 'M5 × 0.8 × 25', 'named by its size, though the #10-32 comb was picked');
   assert.equal(await small.page.evaluate(() => document.querySelector('.g-kicker').textContent), 'It’s an');
+  // With a metric set ticked, its free clearance is a 5.5 mm bit, on one line: not "5.5" over "mm".
+  await small.page.evaluate(() => window.pilotHole.store.setSet('met25', true));
+  await small.page.click('[data-head="socket"]');
+  const mmLines = await small.page.$$eval('.g-holes .g-bit b', bs => bs.filter(b => /mm/.test(b.textContent)).map(b => `${b.textContent}: ${b.getClientRects().length}`));
+  assert.ok(mmLines.length && mmLines.every(x => x.endsWith(': 1')), `metric sizes break across lines: ${mmLines.join(', ')}`);
   // A screw longer than the glass: the panel tucks away and there's room for a 2½″ one.
   await small.page.click('.g-result [data-go="measure"]');
   await small.page.waitForSelector('.gauge[data-step="measure"]');

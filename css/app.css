@@ -611,7 +611,8 @@ body.gauge-on .toast { bottom: auto; top: 44%; }
 .g-holes span, .g-tools span { color: var(--ink-2); }
 .g-holes b, .g-tools b { font: 800 19px var(--sans); font-stretch: 87.5%; text-align: right; }
 .g-bit { text-align: right; }
-.g-bit small { display: block; color: var(--muted); font-size: 13px; }
+/* The note under a bit ("a hair tight"), not the "mm" inside its name */
+.g-bit > small { display: block; color: var(--muted); font-size: 13px; }
 .g-result .row-btns { margin-top: 18px; }
 
 /* ---------- The sheet ---------- */
