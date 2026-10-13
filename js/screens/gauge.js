@@ -505,10 +505,13 @@ export function renderGauge(main, hash = '') {
   }
   const normal = (pick, pointed) => ({ ...pick, material: pointed ? (pick.type === 'sheet' ? 'steel' : 'hardwood') : (store.pick?.material && pick.type === store.pick.type ? store.pick.material : 'aluminium') });
   const lenWords = (mm, len) => `${mmText(mm, 1)}\u00a0mm long${len.standard ? '' : ' (not a usual length)'}`;
-  // "1/4-20 × 1-1/2 hex bolt" with the length's fraction set properly. The thread's name and each "× size"
-  // stay whole, so it breaks as "1/4-20 × 1½ / hex bolt", never "1/4- / 20" or "1 / ½".
+  // "1/4-20 × 1-1/2 hex bolt" with the length's fraction set properly, and a lag's size too (5/16″, as on the
+  // Holes screen). The thread's name and each "× size" stay whole, so it breaks as "1/4-20 × 1½ / hex bolt",
+  // never "1/4- / 20" or "1 / ½".
   const fracName = name => esc(name)
-    .replace(/^(\S+)/, '<span class="nw">$1</span>')
+    .replace(/^(\d+)\/(\d+)″/, '<span class="nw"><span class="fr">$1/$2</span>″</span>')
+    .replace(/^(\d+) mm/, '<span class="nw">$1 mm</span>')
+    .replace(/^(?!<)(\S+)/, '<span class="nw">$1</span>')
     .replace(/× ([\d.]+)(?![\d./-])/g, '<span class="nw">× $1</span>')
     .replace(/× (\d+)-(\d+)\/(\d+)/, '<span class="nw">× $1<span class="sp">-</span><span class="fr">$2/$3</span></span>')
     .replace(/× (\d+)\/(\d+)/, '<span class="nw">× <span class="fr">$1/$2</span></span>');

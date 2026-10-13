@@ -420,6 +420,8 @@ try {
   assert.match(await text(page, '.g-could'), /^Could be a 5\/16″ lag screw$/);
   await page.click('[data-go="name"]');
   assert.equal(await text(page, '.gauge-name'), '5/16″ × 1-1/4 lag screw');
+  // Its size is set as a real fraction, as the Holes screen sets it, not as 5/16 in a row.
+  assert.deepEqual(await page.$$eval('.gauge-name .fr', fs => fs.map(f => f.textContent)), ['5/16', '1/4']);
   assert.match(await page.getAttribute('[data-kind="wood"]', 'class'), /\boff\b/);
   await page.click('[data-kind="wood"]', { force: true });
   assert.match(await text(page, '#toast'), /Wood screws stop at #14: this one’s fatter\./);
