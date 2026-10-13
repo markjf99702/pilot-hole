@@ -5,6 +5,6 @@
   "description": "The drill bit for any screw, bolt or insert.",
   "scripts": {
     "start": "npx --yes http-server -c-1 -p 9500 .",
-    "test": "node --test test/unit.test.mjs"
+    "test": "node --test --test-concurrency=1 test/unit.test.mjs && node test/e2e.mjs"
   }
 }
