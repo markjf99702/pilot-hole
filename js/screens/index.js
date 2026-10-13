@@ -2,7 +2,8 @@
 // Tap a bit to see everything it's right for, or mark it missing.
 import { store } from '../store.js';
 import { SETS, setById, bitById, BITS, nearestInEachKind } from '../drills.js';
-import { usesFor } from '../holes.js';
+import { usesFor, spotOn } from '../holes.js';
+import { goodTap } from '../threads.js';
 import { bitInHole } from '../draw.js';
 import { pickHash, finishOf } from './holes.js';
 import { $, $$, esc, bitHTML, bitSizes, offWords, fracify, openSheet, closeSheet, toast, ICON } from '../ui.js';
@@ -149,7 +150,9 @@ export function bitSheet(bitId, setId, onClose) {
   const twins = Object.values(nearestInEachKind(b.mm, { exclude: b.id }))
     .filter(x => x.kind !== b.kind && Math.abs(x.mm - b.mm) <= 0.051)
     .sort((x, y) => Math.abs(x.mm - b.mm) - Math.abs(y.mm - b.mm));
-  const groups = usesFor(b.id);
+  // What it's spot on for leads, the near misses follow by kind of hole.
+  const spot = spotOn(b.id);
+  const rest = usesFor(b.id).map(g => ({ ...g, uses: g.uses.filter(u => !u.spot) })).filter(g => g.uses.length);
   const loose = store.loose.includes(b.id);
   const body = openSheet(`
     <div class="sheet-top bit-top">
@@ -166,8 +169,9 @@ export function bitSheet(bitId, setId, onClose) {
         : owned ? `<p class="mine">${ICON.ok} In your bits${loose ? ', as a loose one' : ''}.${loose ? ` <button type="button" class="link-btn" data-unloose>Take it out</button>` : ''}</p>`
           : `<p class="not-mine">Not in your bits. <button type="button" class="link-btn" data-loose>Add it as a loose bit</button></p>`}
     </div>
-    <h3 class="uses-title">${groups.length ? 'Right for' : 'Nothing in the tables calls for this size.'}</h3>
-    ${groups.map(g => `<section class="uses"><h4>${esc(g.name)}</h4><ul>${mergeRuns(g.uses).map(useRow).join('')}</ul></section>`).join('')}
+    ${spot.length ? `<h3 class="uses-title">Spot on for</h3><section class="uses spot"><ul>${mergeRuns(spot).map(u => useRow(u, true)).join('')}</ul></section>` : ''}
+    <h3 class="uses-title">${rest.length ? (spot.length ? 'Near enough for' : 'Right for') : spot.length ? '' : 'Nothing in the tables calls for this size.'}</h3>
+    ${rest.map(g => `<section class="uses"><h4>${esc(g.name)}</h4><ul>${mergeRuns(g.uses).map(u => useRow(u)).join('')}</ul></section>`).join('')}
   `, onClose);
   body.addEventListener('click', e => {
     if (e.target.closest('.close')) closeSheet();
@@ -215,12 +219,15 @@ function mergeRuns(uses) {
 // What a hole is, when its group doesn't already say: "shank hole", "close fit", "straight into a print".
 const QUALIFIER = { lead: 'lead hole', straight: 'straight into a print, no tap', shank: 'shank hole', close: 'close fit', free: 'free fit', plug: 'for a plug' };
 
-function useRow(u) {
+// A row of the sheet. Under its group's heading a pilot hole needn't say so; in the list it leads with, every row
+// says what kind of hole it is: "#8-32 tap drill".
+function useRow(u, lead = false) {
   const metric = /^M\d|mm/.test(u.who) || u.pick.type === 'heatset' || u.pick.type === 'hinge';
   const tap = u.pct != null && u.hole.key === 'tap';
   const how = tap ? `${Math.round(u.pct)}% thread` : offWords(u.diff, metric);
-  const good = tap ? u.pct >= 70 && u.pct <= 80 : Math.abs(u.diff) < 0.006;
-  const bits = [QUALIFIER[u.hole.key], u.matsMatter ? `in ${matsText(u.mats)}` : ''].filter(Boolean);
+  const good = tap ? goodTap(u.pct) : Math.abs(u.diff) < 0.006;
+  const kind = lead && u.hole.key !== 'straight' ? u.hole.name.toLowerCase() : QUALIFIER[u.hole.key];
+  const bits = [kind, u.matsMatter ? `in ${matsText(u.mats)}` : ''].filter(Boolean);
   return `<li><a class="use" href="${pickHash({ ...u.pick, material: u.matsMatter ? u.mats[0] : u.pick.material })}">
     <span class="what"><b>${fracify(u.who)}</b>${bits.length ? ` <small>${esc(bits.join(', '))}</small>` : ''}</span>
     <span class="how${good ? ' good' : ''}">${esc(how)}${u.usual ? ' · the usual' : ''}</span></a></li>`;

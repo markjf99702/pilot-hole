@@ -177,12 +177,21 @@ try {
   await page.waitForSelector('.sheet[open] .uses');
   const uses = await text(page, '.sheet[open]');
   assert.match(uses, /7\/64″/);
-  assert.match(uses, /#6 and #7 wood screws in hardwood, plywood, MDF exact · the usual/);
-  assert.match(uses, /#8 wood screw, old-style in hardwood, plywood, MDF exact · the usual/);
+  // It leads with what it's spot on for, each saying what kind of hole, then the near misses.
+  assert.match(uses, /Spot on for #6 and #7 wood screws pilot hole, in hardwood, plywood, MDF exact · the usual/i);
+  assert.match(uses, /#8 wood screw, old-style pilot hole, in hardwood, plywood, MDF exact · the usual/);
   assert.match(uses, /#3 and #4 wood screws shank hole exact · the usual/);
-  assert.match(uses, /#6-32 71% thread/);
+  assert.match(uses, /#6-32 tap drill 71% thread Near enough for/i);
   assert.match(uses, /Near enough the same as #35/);
 
+  // A number drill is known for its tap drill, and that comes first, not under the pilot holes it nearly fits.
+  await page.click('.sheet .close');
+  await page.evaluate(() => document.dispatchEvent(new CustomEvent('pilot:bit', { detail: 'n:29' })));
+  await page.waitForSelector('.sheet[open] .use');
+  assert.equal(squash(await page.locator('.sheet .use').first().innerText()), '#8-32 tap drill 69% thread · the usual');
+  await page.click('.sheet .close');
+  await page.click('.case[data-set="frac29"] .slot[data-bit="f:7/64"]');
+  await page.waitForSelector('.sheet[open] .uses');
   // Mark it missing: the hole goes empty, and the Holes screen stops offering it.
   await page.locator('#goneBox').check();
   await page.click('.sheet .close');

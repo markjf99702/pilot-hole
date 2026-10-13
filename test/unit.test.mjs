@@ -6,7 +6,7 @@ import * as U from '../js/units.js';
 import { BITS, SETS, bitById, ownedBits, bySize, nearestInEachKind } from '../js/drills.js';
 import { THREADS, threadById, tapDrillMm, threadPct, TAP_RANGE, fullName } from '../js/threads.js';
 import * as FS from '../js/fasteners.js';
-import { holesFor, chooseBit, usesFor, allHoles, normalizePick, missWords } from '../js/holes.js';
+import { holesFor, chooseBit, usesFor, spotOn, allHoles, normalizePick, missWords } from '../js/holes.js';
 import * as G from '../js/identify.js';
 
 const close = (a, b, eps = 1e-6, msg) => assert.ok(Math.abs(a - b) < eps, msg || `${a} is not close to ${b}`);
@@ -477,6 +477,26 @@ test('tap 7/64″ and it lists pilot for #8, clearance for #4 and tap drill for 
   close(tap.pct, 70.7, 0.2);
   // Groups come in a fixed order, closest first inside each.
   assert.deepEqual(usesFor('f:7/64').map(g => g.name), ['Pilot holes', 'Tap drills', 'Clearance and shank holes', 'Counterbores']);
+});
+
+test('a bit’s sheet leads with what it’s spot on for, the chart’s own bit first', () => {
+  const spot = id => spotOn(id).map(u => `${u.hole.name} · ${u.who}`);
+  assert.equal(spot('n:29')[0], 'Tap drill · #8-32', '#29 is the #8-32 tap drill before anything else');
+  assert.equal(spot('n:36')[0], 'Tap drill · #6-32');
+  assert.equal(spot('n:7')[0], 'Tap drill · 1/4-20');
+  assert.equal(spot('m:2.5')[0], 'Tap drill · M3');
+  assert.ok(spot('f:7/64').includes('Pilot hole · #8 wood screw, old-style'));
+  assert.ok(spot('f:7/64').includes('Shank hole · #4 wood screw'));
+  assert.ok(spot('f:7/64').includes('Tap drill · #6-32'), 'a 71% thread is spot on, though not the chart’s bit');
+  assert.ok(!spot('n:29').includes('Pilot hole · #10 wood screw'), 'a pilot 0.0046″ small is a near miss');
+  // Spot on is the chart's bit, an exact size, or a 70–80% thread; everything else waits below.
+  for (const id of ['n:29', 'f:7/64', 'm:3.3', 'l:F']) {
+    for (const u of usesFor(id).flatMap(g => g.uses)) {
+      assert.equal(u.spot, u.usual || Math.abs(u.diff) < 0.006 || (u.hole.key === 'tap' && u.pct >= 70 && u.pct <= 80), `${id}: ${u.who}`);
+    }
+  }
+  const s = spotOn('f:1/8');
+  assert.ok(s.findIndex(u => !u.usual) > s.findLastIndex(u => u.usual), 'the chart’s own uses come first');
 });
 
 test('other bits know what they’re for', () => {

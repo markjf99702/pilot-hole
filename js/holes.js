@@ -1,8 +1,8 @@
 // The holes a fastener needs in a material, the bit you own that suits each, and the other way round:
 // everything one bit is right for. Every size is in millimetres. No page code, so the tests run it in Node.
-import { MM, inToMm, fracText, mmText, offWords } from './units.js';
+import { MM, inToMm, fracText, mmText, offWords, SAME_MM } from './units.js';
 import { BITS, bitById, bySize } from './drills.js';
-import { threadById, tapDrillMm, threadPct, TAP_RANGE, fullName } from './threads.js';
+import { threadById, tapDrillMm, threadPct, TAP_RANGE, goodTap, fullName } from './threads.js';
 import * as FS from './fasteners.js';
 
 const f = s => inToMm(eval64(s)); // '7/64' → 2.778 mm
@@ -512,7 +512,8 @@ function useGroup(type, h) {
   return 'Pilot holes';
 }
 
-// Every use of one bit, grouped, closest first.
+// Every use of one bit, grouped, closest first. A use is spot on when it's the chart's own bit for the hole,
+// exactly the size, or a tap drill giving a 70–80% thread.
 export function usesFor(bitId) {
   const b = bitById(bitId);
   if (!b) return [];
@@ -521,15 +522,23 @@ export function usesFor(bitId) {
   for (const u of allHoles()) {
     if (b.mm < u.lo - eps || b.mm > u.hi + eps || !canCutAny(b, u)) continue;
     const mats = u.mats.filter(m => b.kind !== 'forstner' || FS.materialById(m).group !== 'metal');
-    groups.find(x => x.name === u.group).uses.push({
-      ...u, mats, diff: b.mm - u.hole.ideal, usual: u.hole.usual === b.id,
-      pct: u.hole.thread ? threadPct(u.hole.thread, b.mm) : null,
-    });
+    const diff = b.mm - u.hole.ideal, usual = u.hole.usual === b.id;
+    const pct = u.hole.thread ? threadPct(u.hole.thread, b.mm) : null;
+    const spot = usual || Math.abs(diff) < SAME_MM || (u.hole.key === 'tap' && goodTap(pct));
+    groups.find(x => x.name === u.group).uses.push({ ...u, mats, diff, usual, pct, spot });
   }
   // Closest first; among equally close ones, in the order the picker lists them.
   const near = d => Math.round(Math.abs(d) * 1000);
   for (const g of groups) g.uses.sort((x, y) => near(x.diff) - near(y.diff) || x.order - y.order);
   return groups.filter(g => g.uses.length);
+}
+
+// What a bit is known for, to lead its sheet: its spot-on uses, the ones it's the chart's bit for first (#29: the
+// tap drill for #8-32), then by kind of hole, the same materials together, in the picker's order.
+export function spotOn(bitId) {
+  const list = usesFor(bitId).flatMap(g => g.uses.filter(u => u.spot));
+  const gi = u => GROUPS.indexOf(u.group);
+  return list.sort((x, y) => (y.usual - x.usual) || gi(x) - gi(y) || x.mats.join().localeCompare(y.mats.join()) || x.order - y.order);
 }
 function canCutAny(b, u) {
   if (b.kind === 'forstner') return u.hole.forstner && u.mats.some(m => FS.materialById(m).group !== 'metal');

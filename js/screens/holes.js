@@ -2,7 +2,7 @@
 import { store } from '../store.js';
 import { holesFor, chooseBit, normalizePick, missWords } from '../holes.js';
 import * as FS from '../fasteners.js';
-import { threadById } from '../threads.js';
+import { threadById, goodTap } from '../threads.js';
 import { bitById, BITS, setById } from '../drills.js';
 import { MM, decIn, mmText } from '../units.js';
 import { bitInHole, coneGlyph, typeIcon, headIcon, swatch, section } from '../draw.js';
@@ -237,7 +237,7 @@ function card(h, r, owned, scale) {
         ? (c.usual.id === b.id ? (owned.size ? 'The usual bit for it.' : 'The usual bit.') : `The usual is ${link(c.usual)} (${esc(otherSizes(c.usual))})${owned.has(c.usual.id) || !owned.size ? '' : ', not in your bits'}.`)
         : exact ? '' : `Aim for ${esc(sizeText(h.ideal, metric))}.`;
     }
-    const pctGood = h.key === 'tap' && c.pct >= 70 && c.pct <= 80;
+    const pctGood = h.key === 'tap' && goodTap(c.pct);
     // What a thread that's shallower or deeper than usual means for the job, or what to watch with a near miss.
     const metal = r.pick.material === 'steel';
     const pctLine = c.near ? `<p class="pct">${esc(c.words)}${c.other ? ` Or ${link(c.other.bit)}, a hair ${c.other.near}.` : ''}</p>`

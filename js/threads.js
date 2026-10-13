@@ -85,3 +85,6 @@ export const K = 0.01299;
 export const tapDrillMm = (t, pct = 75) => t.d - K * pct * t.p;
 export const threadPct = (t, drillMm) => (t.d - drillMm) / (K * t.p);
 export const TAP_RANGE = [55, 85];
+// A thread from 70% to 80% is as good as a tap drill gets: no reason to look for another bit.
+export const GOOD_TAP = [70, 80];
+export const goodTap = pct => pct >= GOOD_TAP[0] && pct <= GOOD_TAP[1];
