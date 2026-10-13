@@ -311,7 +311,8 @@ export function renderGauge(main, hash = '') {
     const scrolled = field.scrollTop;
     drawThreadsPanel(combs);
     size();
-    const k = st.k, x0 = 16, span = W - 32, band = COMB.band;
+    // A leaf runs across a phone; on a wide screen it stops at the length of a real one, not a ruler's.
+    const k = st.k, x0 = 16, span = Math.min(W - 32, 600), band = COMB.band;
     let s = '';
     over.innerHTML = '';
     combs.forEach((c, ci) => {
@@ -341,7 +342,7 @@ export function renderGauge(main, hash = '') {
         s += `<path d="M${x} ${y + band + 2}v${i === 5 ? 4 : 7}" class="comb-mark"/>`;
         if (i === 10 || (i === 5 && 5 * p >= 24)) s += `<text x="${x}" y="${y + band + 19}" text-anchor="middle" class="comb-ten">${i}</text>`;
       }
-      over.insertAdjacentHTML('beforeend', `<button type="button" class="comb-btn${on ? ' on' : ''}" data-comb="${c.key}" style="top:${y - 28}px;height:${band + 54}px" aria-pressed="${on}">
+      over.insertAdjacentHTML('beforeend', `<button type="button" class="comb-btn${on ? ' on' : ''}" data-comb="${c.key}" style="top:${y - 28}px;height:${band + 54}px;width:${span + 20}px;right:auto" aria-pressed="${on}">
         <span><b>${fracify(t.system === 'inch' ? t.label : fullName(t))}</b> · ${esc(c.label)}${c.threads.length > 1 ? ` <small>(${c.threads.filter(x => x !== t).map(x => esc(x.label)).join(', ')} too)</small>` : ''}</span>
         <small>10 threads: ${mmText(tenThreads(c.pitch), 2)}\u00a0mm</small></button>`);
     });
