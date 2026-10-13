@@ -387,8 +387,13 @@ export function renderGauge(main, { calibrate = false } = {}) {
   const shortName = t => (t.system === 'inch' ? t.label : t.size); // #10-32, M5
   const normal = (pick, pointed) => ({ ...pick, material: pointed ? (pick.type === 'sheet' ? 'steel' : 'hardwood') : (store.pick?.material && pick.type === store.pick.type ? store.pick.material : 'aluminium') });
   const lenWords = (mm, len) => `${mmText(mm, 1)} mm long${len.standard ? '' : ' (not a usual length)'}`;
-  // "1/4-20 × 1-1/2 hex bolt" with the length's fraction set properly, and kept on one line (1½, never 1 / ½).
-  const fracName = name => esc(name).replace(/× (\d+)-(\d+)\/(\d+)/, '× <span class="nw">$1<span class="sp">-</span><span class="fr">$2/$3</span></span>').replace(/× (\d+)\/(\d+)(?!-)/, '× <span class="fr">$1/$2</span>');
+  // "1/4-20 × 1-1/2 hex bolt" with the length's fraction set properly. The thread's name and each "× size"
+  // stay whole, so it breaks as "1/4-20 × 1½ / hex bolt", never "1/4- / 20" or "1 / ½".
+  const fracName = name => esc(name)
+    .replace(/^(\S+)/, '<span class="nw">$1</span>')
+    .replace(/× ([\d.]+)(?![\d./-])/g, '<span class="nw">× $1</span>')
+    .replace(/× (\d+)-(\d+)\/(\d+)/, '<span class="nw">× $1<span class="sp">-</span><span class="fr">$2/$3</span></span>')
+    .replace(/× (\d+)\/(\d+)/, '<span class="nw">× <span class="fr">$1/$2</span></span>');
 
   function grip(x, y, dir) {
     const arrows = dir === 'v' ? `M${x} ${n(y - 9)}l-4 5h8zM${x} ${n(y + 9)}l-4 -5h8z` : `M${n(x - 9)} ${y}l5 -4v8zM${n(x + 9)} ${y}l-5 -4v8z`;
