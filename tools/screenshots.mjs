@@ -94,7 +94,7 @@ async function drag(page, x, y, x2, y2) {
     document.body.innerHTML = `${defs}
       <div class="og">
         <div class="og-text">
-          <div class="og-brand"><img src="icon.svg" alt="" width="76" height="76"><h1>Pilot Hole</h1></div>
+          <img src="icon.svg" alt="" width="80" height="80"><h1>Pilot Hole</h1>
           <p>The drill bit for any screw, bolt or insert, in the bits you own.</p>
           <ul><li>Pilot, clearance and tap-drill holes</li><li>Your drill index, bit by bit</li><li>Lay a screw on the screen and it names it</li></ul>
         </div>
@@ -107,15 +107,14 @@ async function drag(page, x, y, x2, y2) {
       .og::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 26px;
         background: linear-gradient(180deg, rgba(255, 255, 255, .06), rgba(0, 0, 0, .1)), var(--hammer) 0 0 / 180px 180px, var(--steel);
         background-blend-mode: normal, soft-light, normal; }
-      .og-text { position: absolute; left: 60px; top: 150px; width: 480px; }
-      .og-brand { display: flex; align-items: center; gap: 22px; }
-      .og-brand img { display: block; border-radius: 18px; box-shadow: 0 2px 8px rgba(0, 0, 0, .3); }
-      .og-brand h1 { margin: 0; font: 800 50px/1 var(--sans); font-stretch: 125%; text-transform: uppercase; letter-spacing: .02em; white-space: nowrap; }
-      .og-text p { margin: 30px 0 26px; font: 650 34px/1.2 var(--sans); font-stretch: 87.5%; color: var(--ink); }
+      .og-text { position: absolute; left: 64px; top: 50%; transform: translateY(-50%); width: 456px; }
+      .og-text img { display: block; border-radius: 18px; box-shadow: 0 2px 8px rgba(0, 0, 0, .3); }
+      .og-text h1 { margin: 26px 0 0; font: 800 54px/1 var(--sans); font-stretch: 125%; text-transform: uppercase; letter-spacing: .02em; white-space: nowrap; }
+      .og-text p { margin: 24px 0 24px; font: 650 33px/1.2 var(--sans); font-stretch: 87.5%; color: var(--ink); }
       .og-text ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
       .og-text li { display: flex; align-items: center; gap: 14px; font: 650 24px/1.2 var(--sans); font-stretch: 87.5%; color: var(--ink-2); }
       .og-text li::before { content: ''; flex: none; width: 12px; height: 12px; border-radius: 50%; background: var(--accent); }
-      .og-case { position: absolute; right: 52px; top: 112px; width: 580px; }
+      .og-case { position: absolute; right: 52px; top: calc(50% + 13px); transform: translateY(-50%); width: 580px; }
       .og-case .case { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .2), inset 0 -3px 0 rgba(0, 0, 0, .35), 0 22px 40px -18px rgba(0, 0, 0, .65); }
       .og-case .lid-x, .toast { display: none !important; }`;
     document.head.append(style);
