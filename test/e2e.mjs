@@ -664,6 +664,20 @@ try {
   await laptop.ctx.setOffline(false);
   await laptop.ctx.close();
 
+  // Where it shares an address with other tools it shares their caches too: when its service worker takes over,
+  // it clears out its own old copy and leaves another tool's alone.
+  const shared = await device({ width: 390, height: 844 });
+  await shared.page.goto(base + 'icon.svg'); // the same address, before Pilot Hole has a service worker
+  await shared.page.evaluate(async () => {
+    await (await caches.open('another-tool-v1')).put('another-tool/', new Response('another tool, kept for offline'));
+    await (await caches.open('pilot-hole-v0')).put('index.html', new Response('an old Pilot Hole'));
+  });
+  await shared.page.goto(base);
+  await shared.page.waitForFunction(() => navigator.serviceWorker?.controller, null, { timeout: 30000 });
+  assert.equal(await shared.page.evaluate(() => caches.has('another-tool-v1')), true, 'another tool’s offline copy is kept');
+  assert.equal(await shared.page.evaluate(() => caches.has('pilot-hole-v0')), false, 'Pilot Hole’s old offline copy is cleared out');
+  await shared.ctx.close();
+
   // ---------- In the dark ----------
   const dark = await device({ width: 390, height: 844 }, { colorScheme: 'dark', isMobile: true, hasTouch: true });
   await dark.page.goto(base + '#/index');
