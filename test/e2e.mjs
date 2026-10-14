@@ -30,7 +30,7 @@ const base = `http://localhost:${server.address().port}/`;
 {
   const sw = await readFile(join(root, 'sw.js'), 'utf8');
   const listed = new Set([...sw.match(/const SHELL = \[([\s\S]*?)\];/)[1].matchAll(/'([^']+)'/g)].map(m => m[1]));
-  const need = ['index.html', 'icon.svg', 'manifest.webmanifest', 'icon-180.png', 'icon-192.png', 'icon-512.png', 'icon-512-maskable.png'];
+  const need = ['index.html', 'carry.js', 'icon.svg', 'manifest.webmanifest', 'icon-180.png', 'icon-192.png', 'icon-512.png', 'icon-512-maskable.png'];
   for (const dir of ['css', 'fonts', 'js', 'js/screens']) {
     for (const f of await readdir(join(root, dir), { withFileTypes: true })) if (f.isFile()) need.push(`${dir}/${f.name}`);
   }

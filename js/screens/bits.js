@@ -28,7 +28,7 @@ export function yourBitsSheet() {
         ${scr ? '<a href="#/gauge?calibrate" class="link" data-close>Calibrate again</a>' : ''}</p>
       <h3 class="sub-title">Keep a copy</h3>
       <p class="hint">Your bits are kept in this browser, on this device. ${saving ? 'Save a copy to move them to another phone, or keep it safe.'
-        : `To save a copy of them, open Pilot Hole at <a class="link" href="${SITE}">junkdrawer.works/pilot-hole</a>.`}</p>
+        : `To save a copy of them, open Pilot Hole at <a class="link" href="${SITE}">pilot-hole.junkdrawer.works</a>.`}</p>
       <div class="row-btns">
         ${saving ? '<button type="button" class="btn small" data-act="save">Save a copy</button>' : ''}
         <label class="btn small file-btn">Load a copy<input type="file" accept="application/json,.json" data-act="load" hidden></label>

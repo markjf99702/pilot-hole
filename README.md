@@ -1,6 +1,6 @@
 # Pilot Hole
 
-**Use it: [junkdrawer.works/pilot-hole](https://junkdrawer.works/pilot-hole/)**
+**Use it: [pilot-hole.junkdrawer.works](https://pilot-hole.junkdrawer.works/)**
 
 **The drill bit for any screw, bolt or insert, in the bits you own.** Pick a fastener and what it's going into, and Pilot Hole gives every hole that matters: pilot, shank, countersink or counterbore, tap drill and clearance, plus the wrench or hex key it takes. Each answer names the nearest bit in the sets you've ticked and how far off it is. Lay a stray screw from the junk drawer on the screen and it tells you what it is.
 
@@ -36,7 +36,7 @@ node tools/make-icons.mjs     # redraws the PNG icons from icon.svg
 npm run build                 # dist/pilot-hole.html and dist/artifact.html: the whole app in one file
 ```
 
-The single-file copy has no offline copy and doesn't install. Shown inside another page, as the playable copy is, it can't start a download, so it leaves out Save a copy and points to junkdrawer.works/pilot-hole for that.
+The single-file copy has no offline copy and doesn't install. Shown inside another page, as the playable copy is, it can't start a download, so it leaves out Save a copy and points to pilot-hole.junkdrawer.works for that.
 
 To put it online with GitHub Pages: **Settings → Pages → Build and deployment → Deploy from a branch**, then pick `main` and `/ (root)`.
 
@@ -46,6 +46,7 @@ To put it online with GitHub Pages: **Settings → Pages → Build and deploymen
 - `js/screens/holes.js`, `index.js`, `gauge.js` and `bits.js`: the Holes screen, the drill index, the screw gauge and Your bits. `js/draw.js`: the drawings (bits standing in their holes, sections through the joints, icons). `js/app.js`: which screen goes with which address. `js/ui.js`: pieces every screen uses. `js/store.js`: saving in the browser, and the copy you can save.
 - `fonts/`: Archivo (SIL Open Font License), served from here so nothing loads from elsewhere.
 - `sw.js`: keeps a copy for using offline.
+- `CNAME` and `carry.js`: Pilot Hole has its own address, pilot-hole.junkdrawer.works, so it installs as an app of its own; junkdrawer.works/pilot-hole/, where it started, forwards there. `carry.js` brings your bits and the screen's calibration over from the old address the first time it opens at the new one.
 - `og.png`: the link preview, and `docs/`: the screenshots above, both drawn from the app by `tools/screenshots.mjs`. `tools/make-icons.mjs` draws the PNG icons from `icon.svg` and `tools/icon-full-bleed.svg`.
 - `scripts/build.mjs`: bundles everything into one file for the playable copy, with the font and icon inside it. What it writes in `dist/` isn't kept in the repo.
 - `test/unit.test.mjs` checks every table against its published values, that the 75% formula picks the chart's tap drill for every thread, that every fastener in every material gives sensible holes, that every hole can be found again from its own bit, and the gauge's arithmetic. `test/e2e.mjs` uses it on a phone: picks fasteners and materials, ticks a metric set, marks a bit missing, saves and loads the bits, calibrates the gauge with a drag, names a bolt (checking its drawing is true size), a flat-head wood screw measured overall and a drill bit, tells an M5 from a #10-32 by size, reaches every comb on a short screen, tucks the panel for a long screw on a small phone, and fits a 320-wide phone; then checks it installs and works offline.

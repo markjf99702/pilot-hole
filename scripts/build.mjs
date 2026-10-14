@@ -59,13 +59,14 @@ for (const [, file] of css.matchAll(/url\(\.\.\/(fonts\/[^)]+\.woff2)\)/g)) css 
 const icon = await dataUri('icon.svg', 'image/svg+xml');
 const page = css => (html => html
   .replace(/ *<link rel="(manifest|apple-touch-icon|preload)"[^>]*>\n/g, '')
+  .replace(/ *<script src="carry\.js"><\/script>\n/, '') // only needed at the tool's own address
   .replaceAll('"icon.svg"', () => `"${icon}"`)
   .replace('<link rel="stylesheet" href="css/app.css">', () => `<style>\n${css}</style>`)
   .replace(/ *<script type="module" src="js\/app.js"><\/script>\n/, '')
   .replace('</body>', () => `<script>\n${js}</script>\n</body>`));
 const source = await read('index.html');
 const html = page(css)(source);
-if (/(src|href)="(js|css|fonts)\/|"icon-\d|manifest\.webmanifest/.test(html)) throw new Error('index.html: a link to another file was left in');
+if (/(src|href)="(js|css|fonts)\/|"icon-\d|manifest\.webmanifest|carry\.js/.test(html)) throw new Error('index.html: a link to another file was left in');
 
 // That host pads the page clear of a phone's notch itself, so the sticky header sits below the padding
 // instead of adding its own. The gauge covers the whole screen, so it keeps clearing the notch itself.

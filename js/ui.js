@@ -30,7 +30,7 @@ export const fracify = s => esc(s).replace(/(\d+)\/(\d+)(?=″)/g, '<span class=
 
 // The one-file copy (scripts/build.mjs) has no offline copy and can't be installed, and shown inside another
 // page, as the playable copy is, it can't start a download either.
-export const SITE = 'https://junkdrawer.works/pilot-hole/';
+export const SITE = 'https://pilot-hole.junkdrawer.works/';
 export const isSingle = () => 'single' in document.documentElement.dataset;
 export function canDownload() {
   if (!isSingle()) return true;

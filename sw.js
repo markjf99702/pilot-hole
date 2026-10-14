@@ -2,9 +2,9 @@
 // Anything the person saves lives in localStorage, not here.
 // Network first, so a new version shows up as soon as you're online.
 
-const CACHE = 'pilot-hole-v1'; // bump the number when the file list changes
+const CACHE = 'pilot-hole-v2'; // bump the number when the file list changes
 const SHELL = [
-  './', 'index.html', 'icon.svg', 'manifest.webmanifest',
+  './', 'index.html', 'carry.js', 'icon.svg', 'manifest.webmanifest',
   'icon-180.png', 'icon-192.png', 'icon-512.png', 'icon-512-maskable.png',
   'css/app.css', 'fonts/archivo.woff2',
   'js/app.js', 'js/draw.js', 'js/drills.js', 'js/fasteners.js', 'js/holes.js', 'js/identify.js',
